@@ -17,14 +17,13 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import type { ActivationFunction, OutputItem } from 'vscode-notebook-renderer';
-import type { KustoResponseDataSet } from 'azure-kusto-data/source/response';
-import type { KustoResultTable } from 'azure-kusto-data/source/models';
+import type { KustoResponseDataSet, KustoResultTable } from 'azure-kusto-data';
 import { hasDataTable } from './utils';
 import ReactJson from 'react-json-view';
 import { AgGridReact } from 'ag-grid-react';
 
-import 'ag-grid-community/dist/styles/ag-grid.css';
-import 'ag-grid-community/dist/styles/ag-theme-balham.css';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-balham.css';
 import { CellDoubleClickedEvent, ColDef, RowSelectedEvent } from 'ag-grid-community';
 // import { request } from 'node:http';
 

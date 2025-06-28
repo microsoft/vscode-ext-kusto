@@ -1,18 +1,21 @@
-import { KustoConnectionStringBuilder } from 'azure-kusto-data/source/connectionBuilder';
-import type { ClientRequestProperties } from 'azure-kusto-data';
+import {
+    KustoConnectionStringBuilder,
+    ClientRequestProperties,
+    KustoResponseDataSet,
+    KustoResponseDataSetV1,
+    KustoResponseDataSetV2
+} from 'azure-kusto-data';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const azurePackage = require('../../../node_modules/azure-kusto-data/package.json');
-import { KustoResponseDataSet, KustoResponseDataSetV1, KustoResponseDataSetV2 } from 'azure-kusto-data/source/response';
 import { IKustoClient } from './connections/types';
 import axios from 'axios';
-import * as moment from 'moment';
 import * as uuid from 'uuid';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const COMMAND_TIMEOUT_IN_MILLISECS = moment.duration(10.5, 'minutes').asMilliseconds();
-const QUERY_TIMEOUT_IN_MILLISECS = moment.duration(4.5, 'minutes').asMilliseconds();
-const CLIENT_SERVER_DELTA_IN_MILLISECS = moment.duration(0.5, 'minutes').asMilliseconds();
+const COMMAND_TIMEOUT_IN_MILLISECS = 10.5 * 60 * 1000; // 10.5 minutes in milliseconds
+const QUERY_TIMEOUT_IN_MILLISECS = 4.5 * 60 * 1000; // 4.5 minutes in milliseconds
+const CLIENT_SERVER_DELTA_IN_MILLISECS = 0.5 * 60 * 1000; // 0.5 minutes in milliseconds
 const MGMT_PREFIX = '.';
 
 enum ExecutionType {

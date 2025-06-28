@@ -1,4 +1,4 @@
-import { KustoResponseDataSet } from 'azure-kusto-data/source/response';
+import { KustoResponseDataSet } from 'azure-kusto-data';
 import {
     notebooks,
     CancellationToken,

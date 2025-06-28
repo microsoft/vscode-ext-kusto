@@ -1,5 +1,4 @@
-import type { ClientRequestProperties, KustoConnectionStringBuilder } from 'azure-kusto-data';
-import type { KustoResponseDataSet } from 'azure-kusto-data/source/response';
+import type { ClientRequestProperties, KustoConnectionStringBuilder, KustoResponseDataSet } from 'azure-kusto-data';
 import { EngineSchema } from '../schema';
 
 export type AzureAuthenticatedConnectionInfo = {

@@ -11,7 +11,7 @@
 // This must be on top, do not change. Required by webpack.
 
 import type { ActivationFunction, OutputItem } from 'vscode-notebook-renderer';
-import type { KustoResponseDataSet } from 'azure-kusto-data/source/response';
+import type { KustoResponseDataSet } from 'azure-kusto-data';
 import type * as PlotlyType from 'plotly.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
