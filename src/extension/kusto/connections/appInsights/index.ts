@@ -1,4 +1,4 @@
-import { KustoConnectionStringBuilder } from 'azure-kusto-data/source/connectionBuilder';
+import { KustoConnectionStringBuilder } from 'azure-kusto-data';
 import { getHash } from '../../../utils';
 import { EngineSchema } from '../../schema';
 import { BaseConnection } from '../baseConnection';

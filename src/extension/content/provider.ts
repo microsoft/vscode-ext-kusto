@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { KustoResponseDataSet } from 'azure-kusto-data/source/response';
+import type { KustoResponseDataSet } from 'azure-kusto-data';
 import { NotebookCellData, NotebookCellKind, NotebookData, workspace } from 'vscode';
 import { getCellOutput } from '../output/chart';
 import { registerDisposable } from '../utils';

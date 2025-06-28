@@ -1,5 +1,4 @@
-import { KustoConnectionStringBuilder } from 'azure-kusto-data/source/connectionBuilder';
-import { AzureCliCredential } from '@azure/identity';
+import { KustoConnectionStringBuilder } from 'azure-kusto-data';
 import { authentication, env, Uri, window } from 'vscode';
 import { EngineSchema } from '../../schema';
 import { getClusterDisplayName } from '../../utils';
