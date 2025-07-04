@@ -40,7 +40,7 @@ Note: For local development, Azure CLI or VS Code authentication is recommended.
 ## Getting Started
 
 - Open a `*.kql|*.csl` file and start typing to get code completion
-- Open a `*.kql|*.csl` file and click on the `Run Query` code lense
+- Open a `*.kql|*.csl` file and click on the `Run Query` code lens
 - Open a `*.kql|*.csl` file as a notebook
 - Create a file with extension `*.knb` (or use the command `Create Kusto Notebook`)
 - With text file (`*.kql`, `*.csl`) use the command `Configure Kusto Connection` to configure the Kusto connection

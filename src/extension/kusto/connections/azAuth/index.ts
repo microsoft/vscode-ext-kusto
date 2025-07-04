@@ -40,6 +40,10 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
         return getClusterSchema(this.info);
     }
     public async getKustoClient(): Promise<IKustoClient> {
+        if (!this.info.cluster) {
+            this.Logger.error('Cluster information is missing in connection info.');
+            throw new Error('Cluster information is missing in connection info.');
+        }
         // Create and show output channel
         this.Logger.log(`Creating Kusto client for cluster: ${this.info.cluster}`);
         const accessToken = await this.getAccessToken();
@@ -49,10 +53,6 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
                 accessToken ? 'provided' : 'not provided'
             }`
         );
-        if (!this.info.cluster) {
-            this.Logger.error('Cluster information is missing in connection info.');
-            throw new Error('Cluster information is missing in connection info.');
-        }
         const connection = this.getConnectionBuilder(this.info.cluster, accessToken);
         return new AzureAuthenticatedConnection.KustoClientCtor(connection);
     }
