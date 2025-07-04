@@ -1,4 +1,5 @@
 import { KustoConnectionStringBuilder } from 'azure-kusto-data/source/connectionBuilder';
+import { AzureCliCredential } from '@azure/identity';
 import { authentication, env, Uri, window } from 'vscode';
 import { EngineSchema } from '../../schema';
 import { getClusterDisplayName } from '../../utils';
@@ -6,9 +7,11 @@ import { BaseConnection } from '../baseConnection';
 import { updateConnectionCache } from '../storage';
 import { AzureAuthenticatedConnectionInfo, IKustoClient, NewableKustoClient } from '../types';
 import { getClusterSchema } from './schema';
+import { LoggerFactory } from '../../../output/logger';
 
 export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthenticatedConnectionInfo> {
     private static KustoClientCtor: NewableKustoClient;
+    private Logger = LoggerFactory.getLogger('kusto-ext');
     constructor(info: AzureAuthenticatedConnectionInfo) {
         super('azAuth', info);
     }
@@ -37,9 +40,20 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
         return getClusterSchema(this.info);
     }
     public async getKustoClient(): Promise<IKustoClient> {
+        // Create and show output channel
+        this.Logger.log(`Creating Kusto client for cluster: ${this.info.cluster}`);
         const accessToken = await this.getAccessToken();
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const connection = this.getConnectionBuilder(this.info.cluster!, accessToken);
+        this.Logger.log(
+            `Using access token for cluster: ${this.info.cluster} with token: ${
+                accessToken ? 'provided' : 'not provided'
+            }`
+        );
+        if (!this.info.cluster) {
+            this.Logger.error('Cluster information is missing in connection info.');
+            throw new Error('Cluster information is missing in connection info.');
+        }
+        const connection = this.getConnectionBuilder(this.info.cluster, accessToken);
         return new AzureAuthenticatedConnection.KustoClientCtor(connection);
     }
     private getConnectionBuilder(cluster: string, accessToken?: string) {
@@ -59,6 +73,18 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
         });
     }
     private async getAccessToken() {
+        try {
+            // Try Azure CLI first
+            this.Logger.log('Attempting to get access token using Azure CLI');
+            const token = await this.getAzureCliToken();
+            if (token) {
+                return token;
+            }
+        } catch (error) {
+            // If CLI fails, fallback to interactive auth
+            this.Logger.error('Azure CLI auth failed, falling back to interactive:', error as Error);
+        }
+
         const scopes = ['https://management.core.windows.net/.default', 'offline_access'];
 
         const session = await authentication.getSession('microsoft', scopes, { createIfNone: true });
@@ -70,5 +96,29 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
             placeHolder: '',
             prompt: 'Enter Access Token'
         });
+    }
+
+    private async getAzureCliToken(): Promise<string | undefined> {
+        this.Logger.log('Getting access token using AzureCliCredential');
+
+        try {
+            const credential = new AzureCliCredential();
+            const token = await credential.getToken('https://management.core.windows.net/.default');
+            if (token && token.token) {
+                return token.token;
+            } else {
+                window.showErrorMessage('Failed to get access token from Azure CLI.');
+                return undefined;
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.toLowerCase().includes('not logged in')) {
+                window.showErrorMessage('Please run "az login" in your terminal to authenticate');
+            } else {
+                window.showErrorMessage(`Failed to get token: ${errorMessage}`);
+            }
+            this.Logger.error('Error getting Azure CLI token:', error as Error);
+            throw error;
+        }
     }
 }

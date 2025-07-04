@@ -396,7 +396,7 @@
         "react-dom": "^17.0.2",
         "react-json-view": "^1.21.3",
         "styled-components": "^5.3.8",
-        "util": "^0.12.4",
+        "util": "^0.12.5",
         "uuid": "^3.4.0",
         "vscode-languageclient": "^8.1.0",
         "vscode-languageserver": "^8.1.0",

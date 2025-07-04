@@ -22,6 +22,28 @@ A [Visual Studio Code](https://code.visualstudio.com/) [extension](https://marke
 -   With text file (`*.kql`, `*.csl`) use the command `Configure Kusto Connection` to configure the Kusto connection for a .
 -   With notebooks, select the cluster and database from via the Kernel Picker (or `Notebook: Select Notebook Kernel` command).
 
+### Authentication Methods
+
+The extension supports four ways to authenticate with Azure Data Explorer and will try each method in sequence until successful authentication is achieved:
+
+1. **Azure CLI Authentication**
+   - Uses existing Azure CLI credentials
+   - Requires `az login` to be completed
+
+2. **VS Code Azure Authentication**
+   - Uses VS Code's built-in Azure authentication
+   - No additional tools required
+
+3. **Device Code Authentication**
+   - Interactive device code flow
+   - Enter code at microsoft.com/devicelogin
+
+4. **Access Token Authentication**
+   - Manual access token input
+   - Useful for CI/CD scenarios
+
+Note: For local development, Azure CLI or VS Code authentication is recommended.
+
 ### Chat:
 
 <img src=https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/copilot.gif>
