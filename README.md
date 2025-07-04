@@ -2,29 +2,20 @@
 
 A [Visual Studio Code](https://code.visualstudio.com/) [extension](https://marketplace.visualstudio.com/items?itemName=donjayamanne.kusto) that provides the ability to run Kusto queries in Notebooks as well as plain text files.
 
-# Features
+## Features
 
--   Run Kusto Queries
--   Graphs & Data Viewer
--   Code Completion
--   Syntax highlighting
--   Code refactoring
--   Code formatting
--   Kusto panel with access to Clusters, Databases, Tables, etc
--   Run Kusto queries in Plain text files, Notebooks or in an Interactive Window
+- Run Kusto Queries
+- Graphs & Data Viewer
+- Code Completion
+- Syntax highlighting
+- Code refactoring
+- Code formatting
+- Kusto panel with access to Clusters, Databases, Tables, etc
+- Run Kusto queries in Plain text files, Notebooks or in an Interactive Window
 
-# Getting Started
+## Authentication Methods
 
--   Open a `*.kql|*.csl` file and start typing to get code completion.
--   Open a `*.kql|*.csl` file and click on the `Run Query` code lense
--   Open a `*.kql|*.csl` file as a notebook
--   Create a file with extension `*.knb` (or use the command `Create Kusto Notebook`)
--   With text file (`*.kql`, `*.csl`) use the command `Configure Kusto Connection` to configure the Kusto connection for a .
--   With notebooks, select the cluster and database from via the Kernel Picker (or `Notebook: Select Notebook Kernel` command).
-
-### Authentication Methods
-
-The extension supports four ways to authenticate with Azure Data Explorer and will try each method in sequence until successful authentication is achieved:
+The extension attempts authentication methods in the following order, proceeding to the next if one fails:
 
 1. **Azure CLI Authentication**
    - Uses existing Azure CLI credentials
@@ -42,52 +33,65 @@ The extension supports four ways to authenticate with Azure Data Explorer and wi
    - Manual access token input
    - Useful for CI/CD scenarios
 
+The authentication process will try each method in sequence until successful authentication is achieved.
+
 Note: For local development, Azure CLI or VS Code authentication is recommended.
 
-### Chat:
+## Getting Started
 
-<img src=https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/copilot.gif>
+- Open a `*.kql|*.csl` file and start typing to get code completion
+- Open a `*.kql|*.csl` file and click on the `Run Query` code lense
+- Open a `*.kql|*.csl` file as a notebook
+- Create a file with extension `*.knb` (or use the command `Create Kusto Notebook`)
+- With text file (`*.kql`, `*.csl`) use the command `Configure Kusto Connection` to configure the Kusto connection
+- With notebooks, select the cluster and database from via the Kernel Picker (or `Notebook: Select Notebook Kernel` command)
 
-### Configure Connection:
+## Features Demo
 
-<img src=https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/configureConnection.gif>
+### Chat
+![Chat Demo](https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/copilot.gif)
 
-### Interactive Window:
+### Configure Connection
+![Configure Connection](https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/configureConnection.gif)
 
-<img src=https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/interactiveWindow.gif>
+### Interactive Window
+![Interactive Window](https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/interactiveWindow.gif)
 
-### Notebooks:
+### Notebooks
+![Notebooks](https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/notebook.gif)
 
-<img src=https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/notebook.gif>
+### Schema View
+![Schema View](https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/clusters.gif)
 
-### Schema View:
+## Jupyter Integration
 
-<img src=https://raw.githubusercontent.com/donjayamanne/vscode-kusto/main/images/clusters.gif>
+This extension works with Jupyter Notebooks when using [kqlmagic](https://pypi.org/project/Kqlmagic/):
 
-# Works with Jupyter Notebooks as well (when using [kqlmagic](https://pypi.org/project/Kqlmagic/))
+- Augments Jupyter Notebooks with Kusto language features when using the [Jupyter](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter) extension
+- Automatically detects cluster and database from cells containing connection information `kql AzureDataExplorer://code;cluster='help';database='Samples'`
 
--   This extension augments Jupyter Notebooks with Kusto language features, when using the [Jupyter](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter) extension.
--   The extension will automatically detect the cluster and database from cells containing the connection information `kql AzureDataExplorer://code;cluster='help';database='Samples'`.
+### Differences from Jupyter Notebooks
 
-# Difference between Kusto Notebooks & Jupyter Notebooks (with [kqlmagic](https://pypi.org/project/Kqlmagic/))
+Kusto Notebooks:
+- No additional dependencies
+- Authentication handled by VS Code
 
--   Kusto Notebooks, there are no additional dependencies.
-    -   Authentication against Azure is handled by VS Code.
--   With Jupyter Notebooks, you'll need to install Python and the [kqlmagic](https://pypi.org/project/Kqlmagic/) package.
-    -   You can use Python to further analyze the data.
+Jupyter Notebooks with [kqlmagic](https://pypi.org/project/Kqlmagic/):
+- Requires Python and kqlmagic package installation
+- Enables Python-based data analysis
 
-# Roadmap
+## Roadmap
 
--   Support for more charts
--   & more...
+- Support for more charts
+- & more...
 
-# Thanks to the contributors
+## Thanks to the contributors
 
 [Joyce Er](https://github.com/joyceerhl),
 [SteVen Batten](https://github.com/sbatten),
 [Peng Lyu](https://github.com/rebornix),
 [Tanha Kabir](https://github.com/tanhakabir)
 
-# License
+## License
 
 MIT
