@@ -52,6 +52,12 @@ function renderOutput(value: OutputItem, element: HTMLElement) {
             .ag-header-viewport {
                 overflow-x: hidden !important;
             }
+            .ag-cell-wrapper .ag-cell-expand-button {
+                display: none !important;
+            }
+            .ag-cell .ag-cell-expand-button {
+                display: none !important;
+            }
         `;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,7 +163,15 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
                 domLayout="autoHeight"
                 pagination={true}
                 paginationPageSize={10}
-                defaultColDef={{ resizable: true, filter: true, sortable: true, floatingFilter: true }}
+                defaultColDef={{
+                    resizable: true,
+                    filter: true,
+                    sortable: true,
+                    floatingFilter: true,
+                    wrapText: false,
+                    autoHeight: false,
+                    cellStyle: { overflow: 'hidden', textOverflow: 'ellipsis' }
+                }}
                 columnDefs={props.columnDefs}
                 rowData={props.rowData}
                 enableCellTextSelection={true}
