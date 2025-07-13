@@ -4,8 +4,8 @@
 
 ### Prerequisites
 
-1. [Node.js](https://nodejs.org/) 16.14.2
-1. npm 8.15.2
+1. [Node.js](https://nodejs.org/) 20.18.2 (see `.nvmrc` file)
+1. npm 8.15.2 or later
 1. Windows, macOS, or Linux
 1. [Visual Studio Code](https://code.visualstudio.com/)
 1. The following VS Code extensions:
