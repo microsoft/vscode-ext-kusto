@@ -121,22 +121,33 @@ function renderDataTable(results: KustoResponseDataSet, ele: HTMLElement) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DataTable(props: { columnDefs: any; rowData: any }) {
     function onCellDoubleClicked(e: CellDoubleClickedEvent) {
-        if (columnDataType.get(e.colDef.field || '') === 'dynamic' && e.colDef.field) {
-            try {
-                const json =
-                    typeof e.data[e.colDef.field] === 'string'
-                        ? JSON.parse(e.data[e.colDef.field])
-                        : e.data[e.colDef.field];
-                console.info(`Displaying details for ${e.colDef.field}`);
-                setDetailsField(e.colDef.field);
-                setDetailsJson(json);
-                displayDetails(true);
-            } catch (ex) {
+        if (e.colDef.field) {
+            const fieldType = columnDataType.get(e.colDef.field);
+            const cellValue = e.data[e.colDef.field];
+
+            setDetailsField(e.colDef.field);
+
+            if (fieldType === 'dynamic') {
+                // JSON data - use ReactJson for pretty display
+                try {
+                    const json = typeof cellValue === 'string' ? JSON.parse(cellValue) : cellValue;
+                    console.info(`Displaying JSON details for ${e.colDef.field}`);
+                    setDetailsJson(json);
+                    setDetailsText(undefined);
+                    displayDetails(true);
+                } catch (ex) {
+                    // If JSON parsing fails, treat as text
+                    console.info(`JSON parsing failed, displaying as text for ${e.colDef.field}`);
+                    setDetailsText(String(cellValue || ''));
+                    setDetailsJson(undefined);
+                    displayDetails(true);
+                }
+            } else {
+                // Regular text data - display as formatted text
+                console.info(`Displaying text details for ${e.colDef.field}`);
+                setDetailsText(String(cellValue || ''));
                 setDetailsJson(undefined);
-                console.error(
-                    `Failed to parse details into JSON for ${e.colDef.field} with data ${e.data[e.colDef.field]}`,
-                    ex
-                );
+                displayDetails(true);
             }
         }
     }
@@ -145,18 +156,30 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
             console.info(`Nothing to render`);
             return;
         }
-        try {
-            const json =
-                typeof e.data[detailsField] === 'string' ? JSON.parse(e.data[detailsField]) : e.data[detailsField];
-            console.info(`Displaying details for ${detailsField}`);
-            setDetailsJson(json);
-        } catch (ex) {
+
+        const fieldType = columnDataType.get(detailsField);
+        const cellValue = e.data[detailsField];
+
+        if (fieldType === 'dynamic') {
+            try {
+                const json = typeof cellValue === 'string' ? JSON.parse(cellValue) : cellValue;
+                console.info(`Displaying JSON details for ${detailsField}`);
+                setDetailsJson(json);
+                setDetailsText(undefined);
+            } catch (ex) {
+                console.info(`JSON parsing failed, displaying as text for ${detailsField}`);
+                setDetailsText(String(cellValue || ''));
+                setDetailsJson(undefined);
+            }
+        } else {
+            setDetailsText(String(cellValue || ''));
             setDetailsJson(undefined);
         }
     }
     const [detailsVisible, displayDetails] = React.useState<boolean>(false);
     const [detailsField, setDetailsField] = React.useState<string | undefined>(undefined);
     const [detailsJson, setDetailsJson] = React.useState<any>(undefined);
+    const [detailsText, setDetailsText] = React.useState<string | undefined>(undefined);
     return (
         <div className="ag-theme-balham" style={{ width: '100%', backgroundColor: 'white' }}>
             <AgGridReact
@@ -181,8 +204,51 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
                 onRowSelected={onRowSelected}
                 suppressFieldDotNotation={true}
             ></AgGridReact>
-            {detailsVisible && detailsJson && (
-                <ReactJson src={detailsJson} displayDataTypes={false} displayObjectSize={false} />
+            {detailsVisible && (detailsJson || detailsText) && (
+                <div
+                    style={{
+                        marginTop: '20px',
+                        padding: '10px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        backgroundColor: '#f9f9f9'
+                    }}
+                >
+                    <div style={{ marginBottom: '10px', fontWeight: 'bold', fontSize: '14px' }}>
+                        Details for column: {detailsField}
+                        <button
+                            style={{
+                                float: 'right',
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '16px',
+                                cursor: 'pointer'
+                            }}
+                            onClick={() => displayDetails(false)}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    {detailsJson && <ReactJson src={detailsJson} displayDataTypes={false} displayObjectSize={false} />}
+                    {detailsText && (
+                        <div
+                            style={{
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                maxHeight: '300px',
+                                overflowY: 'auto',
+                                padding: '10px',
+                                backgroundColor: 'white',
+                                border: '1px solid #ddd',
+                                borderRadius: '2px',
+                                fontFamily: 'monospace',
+                                fontSize: '12px'
+                            }}
+                        >
+                            {detailsText}
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );
