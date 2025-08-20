@@ -127,7 +127,11 @@
                     ".kql",
                     ".csl"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "icon": {
+                    "light": "resources/icons/kusto.svg",
+                    "dark": "resources/icons/kusto.svg"
+                }
             }
         ],
         "grammars": [

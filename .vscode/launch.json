@@ -16,10 +16,25 @@
             ],
             "outFiles": ["${workspaceFolder}/out/**/*.js"],
             // "preLaunchTask": "${defaultBuildTask}"
+            "preLaunchTask": "Build (dev)",  // Uncomment this
             "presentation": {
                 "group": "1_extension",
                 "order": 1
             }
+        },
+        {
+            "name": "Run Extension 2",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+            "outFiles": ["${workspaceFolder}/out/**/*.js"],
+            "preLaunchTask": "Build (dev)",  // Uncomment this
+            "sourceMaps": true,              // Add this explicitly
+            "resolveSourceMapLocations": [   // Add this to help with source map resolution
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ]
         },
         {
             "name": "Run Extension (web)",
