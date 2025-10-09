@@ -8,3 +8,34 @@ vscode.d.ts
 vscode.*.d.ts
 src/**/*.js
 src/**/*.js.map
+
+# E2E Test Resources
+test-resources/
+**/test-resources/
+test-workspace/
+**/test-workspace/
+vscode-linux-*/
+vscode-win32-*/
+vscode-darwin-*/
+
+# Test Output and Reports
+test-results/
+test-reports/
+coverage/
+.nyc_output/
+junit.xml
+*.trx
+
+# Extension Testing
+.vscode-test*/
+test-extensions/
+*.log
+chromedriver
+geckodriver
+msedgedriver
+
+# Build artifacts that shouldn't be committed
+dist/
+build/tmp/
+*.tsbuildinfo
+

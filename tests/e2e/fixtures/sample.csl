@@ -1,0 +1,6 @@
+// CSL (Control Script Language) test file
+.show tables
+
+.show database schema
+
+print "CSL file test"

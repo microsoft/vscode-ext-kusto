@@ -1,6 +1,9 @@
 .github/**
 .vscode/**
 .vscode-test/**
+test-resources/**
+tests/**
+test-workspace/**
 build/**
 images/*.mp4
 out/test/**
@@ -22,3 +25,9 @@ vsc-extension-quickstart.md
 **/*.stats.json
 **/*.analyzer.html
 **/*.bundle.js.map
+**/*.log
+**/*.trx
+junit.xml
+coverage/**
+test-results/**
+test-reports/**

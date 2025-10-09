@@ -1,0 +1,265 @@
+import * as vscode from 'vscode';
+
+/**
+ * Notebook Helper for E2E Tests
+ *
+ * Provides utilities for testing Kusto notebook functionality.
+ */
+
+export interface NotebookTestCell {
+    content: string;
+    language: string;
+    kind: vscode.NotebookCellKind;
+}
+
+export class NotebookHelper {
+    private static instance: NotebookHelper;
+
+    private constructor() {}
+
+    public static getInstance(): NotebookHelper {
+        if (!NotebookHelper.instance) {
+            NotebookHelper.instance = new NotebookHelper();
+        }
+        return NotebookHelper.instance;
+    }
+
+    /**
+     * Create a new Kusto notebook
+     */
+    public async createKustoNotebook(): Promise<vscode.NotebookDocument> {
+        const cells: vscode.NotebookCellData[] = [];
+
+        const notebookData = new vscode.NotebookData(cells);
+        notebookData.metadata = {
+            kernelspec: {
+                display_name: 'Kusto',
+                language: 'kusto',
+                name: 'kusto'
+            }
+        };
+
+        const notebook = await vscode.workspace.openNotebookDocument('kusto-notebook', notebookData);
+        return notebook;
+    }
+
+    /**
+     * Add a cell to the notebook
+     */
+    public async addCell(
+        notebook: vscode.NotebookDocument,
+        content: string,
+        language = 'kusto',
+        kind: vscode.NotebookCellKind = vscode.NotebookCellKind.Code
+    ): Promise<void> {
+        const edit = new vscode.WorkspaceEdit();
+        const cellData = new vscode.NotebookCellData(kind, content, language);
+
+        const notebookEdits: vscode.NotebookEdit[] = [vscode.NotebookEdit.insertCells(notebook.cellCount, [cellData])];
+        edit.set(notebook.uri, notebookEdits);
+
+        await vscode.workspace.applyEdit(edit);
+    }
+
+    /**
+     * Execute a notebook cell
+     */
+    public async executeCell(notebook: vscode.NotebookDocument, cellIndex: number): Promise<void> {
+        const cell = notebook.cellAt(cellIndex);
+
+        if (!cell) {
+            throw new Error(`Cell at index ${cellIndex} not found`);
+        }
+
+        // Execute the cell
+        await vscode.commands.executeCommand('notebook.cell.execute', {
+            ranges: [{ start: cellIndex, end: cellIndex + 1 }],
+            document: notebook.uri
+        });
+    }
+
+    /**
+     * Wait for cell execution to complete
+     */
+    public async waitForCellExecution(
+        notebook: vscode.NotebookDocument,
+        cellIndex: number,
+        timeoutMs = 30000
+    ): Promise<boolean> {
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < timeoutMs) {
+            const cell = notebook.cellAt(cellIndex);
+
+            if (cell && cell.executionSummary) {
+                // Check if execution is complete
+                if (cell.executionSummary.success !== undefined) {
+                    return true;
+                }
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        return false;
+    }
+
+    /**
+     * Get cell output
+     */
+    public getCellOutput(notebook: vscode.NotebookDocument, cellIndex: number): readonly vscode.NotebookCellOutput[] {
+        const cell = notebook.cellAt(cellIndex);
+        return cell ? cell.outputs : [];
+    }
+
+    /**
+     * Get cell execution status
+     */
+    public getCellExecutionStatus(
+        notebook: vscode.NotebookDocument,
+        cellIndex: number
+    ): {
+        isExecuting: boolean;
+        isSuccess?: boolean;
+        startTime?: number;
+        endTime?: number;
+    } {
+        const cell = notebook.cellAt(cellIndex);
+
+        if (!cell) {
+            return { isExecuting: false };
+        }
+
+        const isExecuting =
+            cell.executionSummary?.timing?.startTime !== undefined &&
+            cell.executionSummary?.timing?.endTime === undefined;
+
+        return {
+            isExecuting,
+            isSuccess: cell.executionSummary?.success,
+            startTime: cell.executionSummary?.timing?.startTime,
+            endTime: cell.executionSummary?.timing?.endTime
+        };
+    }
+
+    /**
+     * Show notebook in editor
+     */
+    public async showNotebook(notebook: vscode.NotebookDocument): Promise<vscode.NotebookEditor> {
+        return vscode.window.showNotebookDocument(notebook);
+    }
+
+    /**
+     * Get active notebook editor
+     */
+    public getActiveNotebookEditor(): vscode.NotebookEditor | undefined {
+        return vscode.window.activeNotebookEditor;
+    }
+
+    /**
+     * Set notebook kernel
+     */
+    public async setNotebookKernel(notebook: vscode.NotebookDocument, kernelId: string): Promise<void> {
+        await vscode.commands.executeCommand('notebook.selectKernel', {
+            notebookEditor: notebook,
+            id: kernelId
+        });
+    }
+
+    /**
+     * Clear all cell outputs
+     */
+    public async clearAllOutputs(notebook: vscode.NotebookDocument): Promise<void> {
+        await vscode.commands.executeCommand('notebook.clearAllCellsOutputs', notebook.uri);
+    }
+
+    /**
+     * Clear specific cell output
+     */
+    public async clearCellOutput(notebook: vscode.NotebookDocument, cellIndex: number): Promise<void> {
+        const cell = notebook.cellAt(cellIndex);
+        if (cell) {
+            await vscode.commands.executeCommand('notebook.cell.clearOutputs', {
+                ranges: [{ start: cellIndex, end: cellIndex + 1 }],
+                document: notebook.uri
+            });
+        }
+    }
+
+    /**
+     * Delete a cell
+     */
+    public async deleteCell(notebook: vscode.NotebookDocument, cellIndex: number): Promise<void> {
+        const edit = new vscode.WorkspaceEdit();
+        const notebookEdits: vscode.NotebookEdit[] = [vscode.NotebookEdit.deleteCells(new vscode.NotebookRange(cellIndex, cellIndex + 1))];
+        edit.set(notebook.uri, notebookEdits);
+
+        await vscode.workspace.applyEdit(edit);
+    }
+
+    /**
+     * Update cell content
+     */
+    public async updateCellContent(
+        notebook: vscode.NotebookDocument,
+        cellIndex: number,
+        content: string
+    ): Promise<void> {
+        const cell = notebook.cellAt(cellIndex);
+        if (!cell) {
+            throw new Error(`Cell at index ${cellIndex} not found`);
+        }
+
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(cell.document.uri, new vscode.Range(0, 0, cell.document.lineCount, 0), content);
+
+        await vscode.workspace.applyEdit(edit);
+    }
+
+    /**
+     * Create test notebook with sample cells
+     */
+    public async createTestNotebook(): Promise<vscode.NotebookDocument> {
+        const notebook = await this.createKustoNotebook();
+
+        // Add some test cells
+        await this.addCell(notebook, '// This is a test Kusto notebook', 'kusto', vscode.NotebookCellKind.Markup);
+        await this.addCell(notebook, 'print "Hello, Kusto!"', 'kusto');
+        await this.addCell(notebook, 'range x from 1 to 10 step 1', 'kusto');
+
+        return notebook;
+    }
+
+    /**
+     * Validate notebook structure
+     */
+    public validateNotebook(notebook: vscode.NotebookDocument): {
+        isValid: boolean;
+        errors: string[];
+    } {
+        const errors: string[] = [];
+
+        if (notebook.cellCount === 0) {
+            errors.push('Notebook has no cells');
+        }
+
+        // Check if notebook has the correct kernel type
+        const metadata = notebook.metadata;
+        if (!metadata || !metadata.kernelspec || metadata.kernelspec.name !== 'kusto') {
+            errors.push('Notebook does not have Kusto kernel');
+        }
+
+        // Validate cells
+        for (let i = 0; i < notebook.cellCount; i++) {
+            const cell = notebook.cellAt(i);
+            if (cell.kind === vscode.NotebookCellKind.Code && cell.document.languageId !== 'kusto') {
+                errors.push(`Code cell ${i} does not have Kusto language`);
+            }
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    }
+}
