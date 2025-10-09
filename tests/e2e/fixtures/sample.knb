@@ -1,0 +1,14 @@
+{
+    "cells": [
+        {
+            "kind": "markdown",
+            "source": "# Test Kusto Notebook\n\nThis is a sample Kusto notebook for E2E testing.",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": "print \"Hello from Kusto notebook!\"",
+            "outputs": []
+        }
+    ]
+}
