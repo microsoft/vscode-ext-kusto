@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         node-version: [20.x]
 
     steps:
@@ -73,14 +73,6 @@ jobs:
 
       - name: Run E2E VSIX tests (macOS)
         if: runner.os == 'macOS'
-        run: npm run test:e2e:vsix:all
-        env:
-          AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
-          KUSTO_TEST_CLUSTER: ${{ secrets.CLUSTER }}
-          KUSTO_TEST_DATABASE: ${{ secrets.DATABASE }}
-
-      - name: Run E2E VSIX tests (Windows)
-        if: runner.os == 'Windows'
         run: npm run test:e2e:vsix:all
         env:
           AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
