@@ -2,7 +2,7 @@
     "name": "kusto",
     "displayName": "Kusto Notebooks",
     "description": "Run Kusto Queries in Notebooks",
-    "version": "0.5.4",
+    "version": "0.6.0",
     "engines": {
         "vscode": "^1.97.0"
     },
@@ -11,13 +11,13 @@
         "name": "Don Jayamanne"
     },
     "license": "MIT",
-    "homepage": "https://github.com/DonJayamanne/vscode-kusto",
+    "homepage": "https://github.com/microsoft/vscode-ext-kusto",
     "repository": {
         "type": "git",
-        "url": "https://github.com/DonJayamanne/vscode-kusto"
+        "url": "https://github.com/microsoft/vscode-ext-kusto"
     },
     "bugs": {
-        "url": "https://github.com/DonJayamanne/vscode-kusto/issues"
+        "url": "https://github.com/microsoft/vscode-ext-kusto/issues"
     },
     "preview": true,
     "icon": "icon.png",
