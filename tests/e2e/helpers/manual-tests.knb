@@ -1,0 +1,50 @@
+{
+    "cells": [
+        {
+            "kind": "code",
+            "source": ".show commands-and-queries | where LastUpdatedOn >= ago(1d) | summarize Count = count() by CommandType | render piechart  ",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": ".show commands-and-queries | where LastUpdatedOn >= ago(1d) | summarize Count = count() by CommandType ",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": ".show commands-and-queries | where LastUpdatedOn >= ago(1d) | summarize Count = count() by CommandType | render linechart   ",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": ".show commands-and-queries | where LastUpdatedOn >= ago(1d) | summarize Count = count() by CommandType | render linechart   ",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": ".show tables ",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": "GreenTaxiData\n| limit 10",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": ".show ingestion resources",
+            "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": ".show commands-and-queries ",
+            "outputs": []
+        }
+    ],
+    "metadata": {
+        "connection": {
+            "cluster": "https://sdktestcluster.southeastasia.dev.kusto.windows.net/",
+            "database": "e2e"
+        }
+    }
+}
