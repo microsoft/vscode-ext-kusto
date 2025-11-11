@@ -28,15 +28,17 @@ export function getTabularData(results: KustoResponseDataSet): TabularData | und
     }
     const primaryTable = results.primaryResults[0];
     const fields: Field[] = primaryTable.columns as any;
-    const dataPoints = primaryTable._rows.map((items) => {
-        const row: Datapoint = {};
+    const dataPoints: Datapoint[] = [];
+    for (const row of primaryTable.rows()) {
+        const rowData: Datapoint = {};
         primaryTable.columns.forEach((col) => {
             if (col.name) {
-                row[col.name] = items[col.ordinal];
+                const value = row.raw ? row.raw[col.ordinal] : row.toJSON()[col.name];
+                rowData[col.name] = value;
             }
         });
-        return row;
-    });
+        dataPoints.push(rowData);
+    }
     return {
         data: dataPoints,
         schema: {
