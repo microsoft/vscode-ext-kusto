@@ -20,49 +20,67 @@ jobs:
     name: E2E VSIX Tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
-    
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20.x]
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-      
+
       - name: Compile TypeScript
         run: npm run compile
-      
+
       - name: Compile webpack bundles
         run: npm run compile:webpack
-      
+
       - name: Compile E2E tests
         run: npm run compile:e2e
-      
+
       - name: Run E2E VSIX tests (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:e2e:vsix:all
         env:
           DISPLAY: ':99.0'
-      
+          AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
+          KUSTO_TEST_CLUSTER: ${{ secrets.CLUSTER }}
+          KUSTO_TEST_DATABASE: ${{ secrets.DATABASE }}
+
       - name: Run E2E VSIX tests (macOS)
         if: runner.os == 'macOS'
         run: npm run test:e2e:vsix:all
-      
+        env:
+          AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
+          KUSTO_TEST_CLUSTER: ${{ secrets.CLUSTER }}
+          KUSTO_TEST_DATABASE: ${{ secrets.DATABASE }}
+
       - name: Run E2E VSIX tests (Windows)
         if: runner.os == 'Windows'
         run: npm run test:e2e:vsix:all
-      
+        env:
+          AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
+          KUSTO_TEST_CLUSTER: ${{ secrets.CLUSTER }}
+          KUSTO_TEST_DATABASE: ${{ secrets.DATABASE }}
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,7 +90,7 @@ jobs:
             out/tests/
             *.log
           retention-days: 7
-      
+
       - name: Upload VSIX artifact
         if: always()
         uses: actions/upload-artifact@v4
