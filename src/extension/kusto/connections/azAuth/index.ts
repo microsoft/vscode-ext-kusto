@@ -1,4 +1,4 @@
-import { KustoConnectionStringBuilder } from 'azure-kusto-data/source/connectionBuilder';
+import { KustoConnectionStringBuilder } from 'azure-kusto-data';
 import { AzureCliCredential } from '@azure/identity';
 import { authentication, env, Uri, window } from 'vscode';
 import { EngineSchema } from '../../schema';
