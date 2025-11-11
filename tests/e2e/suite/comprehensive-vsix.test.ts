@@ -512,14 +512,11 @@ suite('Kusto Extension - Comprehensive VSIX Tests', () => {
                 return;
             }
 
-            let notebookCreated = false;
-
             try {
                 const result = await vscode.commands.executeCommand('kusto.createNotebook');
 
                 // Check if a notebook document was created
                 if (result || vscode.window.activeNotebookEditor) {
-                    notebookCreated = true;
                     console.log('✅ kusto.createNotebook created a notebook successfully');
 
                     // Clean up - close the created notebook
