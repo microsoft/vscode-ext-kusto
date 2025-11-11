@@ -1,0 +1,25 @@
+.show commands-and-queries | where LastUpdatedOn >= ago(1h)
+
+.show tables
+
+.drop tables ('AirlineDataQueued2','Storms','Metrics')
+
+.show commands-and-queries
+| where LastUpdatedOn >= ago(1h)
+| summarize count() by CommandType
+|render piechart
+
+.show commands-and-queries
+| where LastUpdatedOn >= ago(1h)
+| summarize count() by CommandType
+| render linechart
+
+.show commands-and-queries
+| where LastUpdatedOn >= ago(1h)
+| summarize count() by CommandType
+| render piechart
+
+.show commands-and-queries
+| where LastUpdatedOn >= ago(10d)
+| summarize count() by CommandType 
+| render barchart 

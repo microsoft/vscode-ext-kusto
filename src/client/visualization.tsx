@@ -69,27 +69,47 @@ function getChartType(
     if (!queryPropertiesTable) {
         return;
     }
-    if (queryPropertiesTable._rows.length === 0) {
+
+    // Handle both KustoResultTable and plain JSON from notebook serialization
+    let rows: any[];
+
+    if (typeof (queryPropertiesTable as any).rows === 'function') {
+        // KustoResultTable - rows are arrays
+        rows = Array.from((queryPropertiesTable as any).rows()).map((row: any) => row.raw);
+    } else {
+        // Plain JSON - check if data contains objects or arrays
+        const data = (queryPropertiesTable as any).data || [];
+
+        if (data.length > 0 && !Array.isArray(data[0])) {
+            // Data is array of objects - just use the object values in key order
+            rows = data.map((obj: any) => Object.values(obj));
+        } else {
+            // Data is already array of arrays
+            rows = data;
+        }
+    }
+
+    if (rows.length === 0) {
         return;
     }
     /**
     [1, "Visualization", "{"Visualization":"piechart","Title":null,"XColumn"…"]
     */
     if (
-        queryPropertiesTable._rows[0][1] !== 'Visualization' &&
+        rows[0][1] !== 'Visualization' &&
         // This is how we get Visualization for AppInsights.
-        !(queryPropertiesTable._rows[0][0] as string).includes('Visualization')
+        (typeof rows[0][0] !== 'string' || !rows[0][0].includes('Visualization'))
     ) {
         return;
     }
     let data: { Visualization: string; Title: string } | undefined;
     try {
-        data = JSON.parse(queryPropertiesTable._rows[0][2]);
+        data = JSON.parse(rows[0][2]);
     } catch {
         //
     }
     try {
-        data = data || JSON.parse(queryPropertiesTable._rows[0][0]);
+        data = data || JSON.parse(rows[0][0]);
     } catch {
         //
     }
@@ -103,7 +123,7 @@ function getChartType(
         if (data.Visualization === 'barchart') {
             return { type: 'bar', title: data.Title || '', orientation: 'h' };
         }
-        if (data.Visualization === 'timechart') {
+        if (data.Visualization === 'timechart' || data.Visualization === 'linechart') {
             return { type: 'time', title: data.Title || '' };
         }
         if (data.Visualization === 'columnchart') {
@@ -132,21 +152,53 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
         }
     });
 
+    // Handle both KustoResultTable and plain JSON from notebook serialization
+    const primaryResult = results.primaryResults[0];
+    const columns =
+        typeof (primaryResult as any).rows === 'function'
+            ? (primaryResult as any).columns
+            : (primaryResult as any).columns || [];
+
+    let rows: any[];
+    if (typeof (primaryResult as any).rows === 'function') {
+        // KustoResultTable - rows are arrays
+        rows = Array.from((primaryResult as any).rows()).map((row: any) => row.raw);
+    } else {
+        // Plain JSON - check if data contains objects or arrays
+        const data = (primaryResult as any).data || [];
+        if (data.length > 0 && !Array.isArray(data[0])) {
+            // Data is array of objects like [{CommandType: "Query", Count: 1}]
+            // Convert objects to arrays - use Object.values since columns might be empty
+            rows = data.map((obj: any) => Object.values(obj));
+        } else {
+            // Data is already array of arrays
+            rows = data;
+        }
+    }
+
     if (chartType.type === 'pie') {
-        const clonedColumns = results.primaryResults[0].columns.slice();
-        // Last column is assumed to be the one with the values (do a best effort to find the one with the `long` value).
-        const valuesColumnIndex =
-            clonedColumns.reverse().find((item) => item.type === 'long')?.ordinal || clonedColumns.length - 1;
+        // Determine values column index
+        let valuesColumnIndex: number;
+        if (columns.length > 0) {
+            // If we have column metadata, try to find the 'long' column
+            const clonedColumns = columns.slice();
+            valuesColumnIndex =
+                clonedColumns.reverse().find((item: any) => item.type === 'long')?.ordinal || clonedColumns.length - 1;
+        } else {
+            // No column metadata - assume last column (index 1 for 2-column data)
+            valuesColumnIndex = rows.length > 0 && rows[0].length > 1 ? rows[0].length - 1 : 1;
+        }
+
         const pieData: Partial<Plotly.PieData> = {
             type: chartType.type,
             textinfo: 'label+value',
             hoverinfo: 'all',
-            labels: results.primaryResults[0]._rows.map((item) => item[0]),
-            values: results.primaryResults[0]._rows.map((item) => item[valuesColumnIndex])
+            labels: rows.map((item) => item[0]),
+            values: rows.map((item) => item[valuesColumnIndex])
         } as any;
 
         // if we have more than 2 columns in the pie chart, we can turn it into a sunburst.
-        if (results.primaryResults[0].columns.length > 2) {
+        if (columns.length > 2) {
             const ele1 = ele.appendChild(document.createElement('div'));
             ele1.style.display = 'inline-block';
             const ele2 = ele.appendChild(document.createElement('div'));
@@ -158,11 +210,11 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
         }
     }
     if (chartType.type === 'time') {
-        const sortedData = results.primaryResults[0]._rows.slice();
-        const dateColumnIndex = results.primaryResults[0].columns.find((col) => col.type === 'datetime')?.ordinal || 0;
-        const timeColumnIndex = results.primaryResults[0].columns.find((col) => col.type === 'timespan')?.ordinal || 0;
+        const sortedData = rows.slice();
+        const dateColumnIndex = columns.find((col: any) => col.type === 'datetime')?.ordinal || 0;
+        const timeColumnIndex = columns.find((col: any) => col.type === 'timespan')?.ordinal || 0;
         // In case we have something that represents an hour.
-        const hourColumnIndex = results.primaryResults[0].columns.find((col) => col.type === 'real')?.ordinal || 0;
+        const hourColumnIndex = columns.find((col: any) => col.type === 'real')?.ordinal || 0;
         if (dateColumnIndex >= 0) {
             sortedData.sort((a, b) => new Date(a[dateColumnIndex]).getTime() - new Date(b[dateColumnIndex]).getTime());
         }
@@ -177,22 +229,19 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
             sortedData.sort((a, b) => a[dateColumnIndex] - b[dateColumnIndex]);
         }
         if (timeColumnIndex === -1 && dateColumnIndex === -1) {
-            console.error(
-                `No datetime nor timespan column ${results.primaryResults[0].columns.map((col) => col.type)}`
-            );
+            console.error(`No datetime nor timespan column ${columns.map((col: any) => col.type)}`);
             return;
         }
         // Do we have multiple time series?
-        if (results.primaryResults[0].columns.length > 2) {
+        if (columns.length > 2) {
             const seriesValues = new Map<string, { x: any[]; y: any[] }>();
-            const columnIndexWithSeriesName =
-                results.primaryResults[0].columns.find((col) => col.type === 'string')?.ordinal || 1;
-            const lastColumn = results.primaryResults[0].columns[results.primaryResults[0].columns.length - 1];
+            const columnIndexWithSeriesName = columns.find((col: any) => col.type === 'string')?.ordinal || 1;
+            const lastColumn = columns[columns.length - 1];
             const columnIndexWithValue =
                 lastColumn.type === 'long'
                     ? lastColumn.ordinal
-                    : results.primaryResults[0].columns.find(
-                          (col) =>
+                    : columns.find(
+                          (col: any) =>
                               col.type !== 'string' &&
                               col.type !== 'datetime' &&
                               col.type !== 'timespan' &&
@@ -230,8 +279,8 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
         }
     }
     if (chartType.type === 'bar') {
-        const labels = results.primaryResults[0]._rows.map((item) => item[0]);
-        const values = results.primaryResults[0]._rows.map((item) => item[1]);
+        const labels = rows.map((item) => item[0]);
+        const values = rows.map((item) => item[1]);
         const barData: Partial<Plotly.PlotData> = {
             type: chartType.type,
             orientation: chartType.orientation,
@@ -245,23 +294,45 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
 }
 
 function generateSunburstChart(ele: HTMLElement, results: KustoResponseDataSet, layout: any) {
-    if (results.primaryResults[0].columns.length <= 2) {
+    const primaryResult = results.primaryResults[0];
+    const columns =
+        typeof (primaryResult as any).rows === 'function'
+            ? (primaryResult as any).columns
+            : (primaryResult as any).columns || [];
+
+    let rows: any[];
+    if (typeof (primaryResult as any).rows === 'function') {
+        // KustoResultTable - rows are arrays
+        rows = Array.from((primaryResult as any).rows()).map((row: any) => row.raw);
+    } else {
+        // Plain JSON - check if data contains objects or arrays
+        const data = (primaryResult as any).data || [];
+        if (data.length > 0 && !Array.isArray(data[0])) {
+            // Data is array of objects - convert to arrays based on column order
+            rows = data.map((obj: any) => columns.map((col: any) => obj[col.name]));
+        } else {
+            // Data is already array of arrays
+            rows = data;
+        }
+    }
+
+    if (columns.length <= 2) {
         return;
     }
-    const valueColumnIndex = results.primaryResults[0].columns.length - 1;
+    const valueColumnIndex = columns.length - 1;
     const ids: string[] = [];
     const labels: string[] = [];
     const parents: string[] = [];
     const values: number[] = [];
 
     // Construct hierarchial data.
-    results.primaryResults[0].columns.forEach((col, index) => {
+    columns.forEach((col: any, index: number) => {
         if (valueColumnIndex === index) {
             return;
         }
         if (index === 0) {
             const labelsAndValues = new Map<string, number>();
-            results.primaryResults[0]._rows.forEach((row) => {
+            rows.forEach((row: any) => {
                 const label = row[index].toString();
                 labelsAndValues.set(label, (labelsAndValues.get(label) ?? 0) + row[valueColumnIndex]);
                 console.info('1');
@@ -275,7 +346,7 @@ function generateSunburstChart(ele: HTMLElement, results: KustoResponseDataSet, 
             });
         } else {
             const labelsAndValues = new Map<string, { parentLabel: string; value: number; label: string }>();
-            results.primaryResults[0]._rows.forEach((row) => {
+            rows.forEach((row: any) => {
                 const parentLabel = Array(index)
                     .fill(0)
                     .map((_, i) => row[i].toString())

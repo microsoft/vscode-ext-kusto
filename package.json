@@ -382,6 +382,7 @@
         "postinstall": "npm run download-api"
     },
     "dependencies": {
+        "@vscode/vsce": "^3.7.0",
         "ag-grid-community": "^34.0.0",
         "ag-grid-react": "^34.0.0",
         "axios": "^1.10.0",
