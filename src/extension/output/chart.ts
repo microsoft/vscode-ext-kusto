@@ -1,4 +1,4 @@
-import type { KustoResponseDataSet } from 'azure-kusto-data/source/response';
+import type { KustoResponseDataSet } from 'azure-kusto-data';
 import { NotebookCellOutput, NotebookCellOutputItem } from 'vscode';
 
 export function getChartType(results: KustoResponseDataSet): string | undefined {

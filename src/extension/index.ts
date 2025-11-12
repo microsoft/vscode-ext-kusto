@@ -14,7 +14,7 @@ import { registerInteractiveExperience } from './interactive/interactive';
 import { registerExportCommand } from './content/export';
 import { StatusBarProvider } from './kernel/statusbar';
 import { AzureAuthenticatedConnection } from './kusto/connections/azAuth';
-import KustoClient from 'azure-kusto-data/source/client';
+import { Client as KustoClient } from 'azure-kusto-data';
 import { registerConnection } from './kusto/connections/baseConnection';
 import { AppInsightsConnection } from './kusto/connections/appInsights';
 import { CellCodeLensProvider } from './interactive/cells';

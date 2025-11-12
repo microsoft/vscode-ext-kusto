@@ -1,0 +1,16 @@
+{
+    "kusto": {
+        "persistOutputs": false
+    },
+    "workbench": {
+        "editor": {
+            "enablePreview": false
+        }
+    },
+    "notebook": {
+        "cellToolbarLocation": {
+            "default": "right",
+            "kusto-notebook": "left"
+        }
+    }
+}

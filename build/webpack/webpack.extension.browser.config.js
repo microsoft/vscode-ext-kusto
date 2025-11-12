@@ -19,11 +19,13 @@ module.exports = {
             path: require.resolve('path-browserify'),
             util: require.resolve('util/'),
             buffer: require.resolve('buffer/'),
-            os: require.resolve('os-browserify')
+            os: require.resolve('os-browserify'),
+            stream: require.resolve('stream-browserify'),
+            vm: require.resolve('vm-browserify')
         }
     },
     optimization: {
-        minimize: false,
+        minimize: true,
         minimizer: []
     },
     output: {

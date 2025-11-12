@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "outDir": "../../out/tests/e2e",
+        "lib": [
+            "es6"
+        ],
+        "sourceMap": true,
+        "rootDir": ".",
+        "strict": false,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node",
+        "types": [
+            "node",
+            "mocha",
+            "vscode"
+        ],
+        "typeRoots": ["../../node_modules/@types", "../../"]
+    },
+    "include": [
+        "**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "test-resources"
+    ]
+}

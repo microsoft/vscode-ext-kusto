@@ -90,7 +90,8 @@ async function selectConnection(multiStepInput: MultiStepInput<State>, state: St
             placeholder: '',
             onDidTriggerItemButton: async (e, quickPick) => {
                 if (e.button.tooltip === 'Delete Connection') {
-                    const connection = (e.item as unknown as QuickPickItem & { connection: IConnectionInfo }).connection;
+                    const connection = (e.item as unknown as QuickPickItem & { connection: IConnectionInfo })
+                        .connection;
                     if (connection === undefined) {
                         return;
                     }

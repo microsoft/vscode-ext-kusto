@@ -173,26 +173,40 @@ export class KernelPerConnection extends Disposable {
             task.appendOutput(new NotebookCellOutput(outputItems));
         } catch (ex) {
             console.error('Failed to execute query', ex);
-            if (!ex) {
-                const error = new Error('Failed to execute query');
-                task.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.error(error)]));
-            } else if (ex instanceof Error && ex) {
-                task.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.error(ex)]));
-            } else if (ex && typeof ex === 'object' && 'message' in ex) {
-                const innerError =
-                    'innererror' in ex &&
-                    typeof ex.innererror === 'object' &&
-                    ex.innererror &&
-                    'message' in ex.innererror &&
-                    ex.innererror.message
-                        ? ` (${ex.innererror.message})`
-                        : '';
-                const message = `${ex.message}${innerError}`;
-                task.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.error({ message, name: '' })]));
-            } else {
-                const error = new Error('Failed to execute query');
-                task.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.error(error)]));
+            let errorMessage = 'Failed to execute query';
+            let errorName = 'Query Error';
+
+            if (ex && typeof ex === 'object') {
+                // Extract error from AxiosError response
+                if ('response' in ex && ex.response && typeof ex.response === 'object') {
+                    const response = ex.response as any;
+                    const status = response.status;
+                    // Extract Kusto error message
+                    if (response.data?.error) {
+                        errorMessage = response.data.error['@message'] || response.data.error.message || errorMessage;
+                    } else if (response.data?.message) {
+                        errorMessage = response.data.message;
+                    }
+                    // Set error name based on HTTP status
+                    if (status === 400) errorName = 'Invalid Query';
+                    else if (status === 401 || status === 403) errorName = 'Authentication Error';
+                    else if (status === 408 || status === 504) errorName = 'Query Timeout';
+                    else if (status >= 500) errorName = 'Server Error';
+                }
+                // Handle standard Error objects
+                else if (ex instanceof Error) {
+                    errorMessage = ex.message;
+                    errorName = ex.name;
+                }
+                // Handle Kusto errors with innererror
+                else if ('message' in ex) {
+                    const innerMsg = (ex as any).innererror?.message ? ` (${(ex as any).innererror.message})` : '';
+                    errorMessage = `${ex.message}${innerMsg}`;
+                }
             }
+            task.appendOutput(
+                new NotebookCellOutput([NotebookCellOutputItem.error({ message: errorMessage, name: errorName })])
+            );
         } finally {
             task.end(success, Date.now());
         }
