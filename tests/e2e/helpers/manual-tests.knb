@@ -39,6 +39,11 @@
             "kind": "code",
             "source": ".show commands-and-queries ",
             "outputs": []
+        },
+        {
+            "kind": "code",
+            "source": "datatable(d:dynamic, Description: string)\n[\n    dynamic({\"Name\": \"John\", \"Age\":20, \"height\":180}), \"Student\",\n    dynamic({\"Name\": \"Dave\", \"Age\":40, \"height\":160}), \"Teacher\",\n    dynamic({\"Name\": \"Jasmine\", \"Age\":30, \"height\":172}), \"Student\",\n]\n| evaluate bag_unpack(d) : (*, Name:string, Age:long)",
+            "outputs": []
         }
     ],
     "metadata": {
