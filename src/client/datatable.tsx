@@ -21,12 +21,10 @@ import type { KustoResponseDataSet, KustoResultTable } from 'azure-kusto-data';
 import { hasDataTable } from './utils';
 import ReactJson from 'react-json-view';
 import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { ModuleRegistry, AllCommunityModule, CellContextMenuEvent } from 'ag-grid-community';
 
 import { CellDoubleClickedEvent, ColDef, RowSelectedEvent, themeQuartz } from 'ag-grid-community';
-import { useMemo } from 'react'
-
-
+import { useMemo } from 'react';
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -95,7 +93,7 @@ function createAgGridData(resultTable: KustoResultTable | any) {
                 filter: true
             };
 
-            // Check if value is an object (dynamic type)
+            // Always stringify objects for display
             const sampleValue = firstRow[colName];
             if (sampleValue !== null && typeof sampleValue === 'object') {
                 columnDef.valueGetter = (param) => {
@@ -104,6 +102,11 @@ function createAgGridData(resultTable: KustoResultTable | any) {
                 };
                 columnDataType.set(colName, 'dynamic');
             } else {
+                // Also check for object at render time
+                columnDef.valueGetter = (param) => {
+                    const cellData = param.data[colName];
+                    return cellData !== null && typeof cellData === 'object' ? JSON.stringify(cellData) : cellData;
+                };
                 columnDataType.set(colName, typeof sampleValue);
             }
 
@@ -123,12 +126,11 @@ function createAgGridData(resultTable: KustoResultTable | any) {
                 filter: true
             };
 
-            if (col.type === 'dynamic' && col.name) {
-                columnDef.valueGetter = (param) => {
-                    const cellData = param.data[col.name || ''];
-                    return typeof cellData === 'string' ? cellData : JSON.stringify(cellData);
-                };
-            }
+            // Always stringify objects for display
+            columnDef.valueGetter = (param) => {
+                const cellData = param.data[col.name || ''];
+                return cellData !== null && typeof cellData === 'object' ? JSON.stringify(cellData) : cellData;
+            };
             gridData.columnDefs.push(columnDef);
             columnDataType.set(col.name || '', col.type || '');
         }
@@ -146,7 +148,6 @@ function createAgGridData(resultTable: KustoResultTable | any) {
     return gridData;
 }
 function renderDataTable(results: KustoResponseDataSet, ele: HTMLElement) {
-    console.log('renderDataTable', results);
     if (!hasDataTable(results)) {
         console.error('No data table');
         return;
@@ -163,8 +164,7 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
             checkboxes: false,
             headerCheckbox: false,
             enableClickSelection: true,
-            enableSelectionWithoutKeys: false,
-
+            enableSelectionWithoutKeys: false
         };
     }, []);
     function onCellDoubleClicked(e: CellDoubleClickedEvent) {
@@ -209,50 +209,89 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
     const [darkMode, setDarkMode] = React.useState<boolean>(false);
 
     const gridTheme = useMemo(() => {
-        return darkMode ? themeQuartz.withParams({
-            backgroundColor: '#1e1e1e',
-            foregroundColor: '#e0e0e0',
-            browserColorScheme: 'dark'
-        }) : themeQuartz;
+        return darkMode
+            ? themeQuartz.withParams({
+                  backgroundColor: '#1e1e1e',
+                  foregroundColor: '#e0e0e0',
+                  browserColorScheme: 'dark'
+              })
+            : themeQuartz;
     }, [darkMode]);
-
-    const processCellForClipboard = React.useCallback((params) => {
-        return "C-" + params.value;
-    }, []);
 
     return (
         <div style={{ width: '100%' }}>
             <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <input
-                        type="checkbox"
-                        checked={darkMode}
-                        onChange={(e) => setDarkMode(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)} />
                     Dark Mode
                 </label>
             </div>
             <div style={{ width: '100%' }}>
-            <AgGridReact
-                theme={gridTheme}
-                domLayout="autoHeight"
-                pagination={true}
-                paginationPageSize={10}
-                paginationPageSizeSelector={[10, 20, 50, 100]}
-                processCellForClipboard={processCellForClipboard}
-                defaultColDef={{ resizable: true, filter: true, sortable: true, floatingFilter: true }}
-                columnDefs={props.columnDefs}
-                rowData={props.rowData}
-                enableCellTextSelection={true}
-                ensureDomOrder={true}
-                rowSelection={rowSelection}
-                onCellDoubleClicked={onCellDoubleClicked}
-                onRowSelected={onRowSelected}
-                suppressFieldDotNotation={true}
-            ></AgGridReact>
-            {detailsVisible && detailsJson && (
-                <ReactJson src={detailsJson} displayDataTypes={false} displayObjectSize={false} />
-            )}
+                <AgGridReact
+                    theme={gridTheme}
+                    domLayout="autoHeight"
+                    pagination={true}
+                    paginationPageSize={10}
+                    paginationPageSizeSelector={[10, 20, 50, 100]}
+                    defaultColDef={{ resizable: true, filter: true, sortable: true, floatingFilter: true }}
+                    columnDefs={props.columnDefs}
+                    rowData={props.rowData}
+                    enableCellTextSelection={true}
+                    ensureDomOrder={true}
+                    rowSelection={rowSelection}
+                    onCellContextMenu={(e: CellContextMenuEvent) => {
+                        if (e.event) {
+                            e.event.preventDefault();
+                            // Create custom context menu
+                            const menu = document.createElement('div');
+                            menu.style.position = 'fixed';
+                            const mouseEvent = e.event as MouseEvent;
+                            menu.style.top = `${mouseEvent.clientY}px`;
+                            menu.style.left = `${mouseEvent.clientX}px`;
+                            menu.style.background = '#fff';
+                            menu.style.border = '1px solid #ccc';
+                            menu.style.padding = '4px 0';
+                            menu.style.zIndex = '9999';
+                            menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                            menu.style.minWidth = '100px';
+                            menu.style.fontSize = '14px';
+                            menu.style.cursor = 'pointer';
+
+                            const copyItem = document.createElement('div');
+                            copyItem.textContent = 'Copy';
+                            copyItem.style.padding = '6px 16px';
+                            copyItem.onmouseenter = () => (copyItem.style.background = '#eee');
+                            copyItem.onmouseleave = () => (copyItem.style.background = '');
+                            copyItem.onclick = () => {
+                                const cellValue = e.value;
+                                if (cellValue !== undefined) {
+                                    navigator.clipboard.writeText(cellValue.toString());
+                                }
+                                document.body.removeChild(menu);
+                            };
+                            menu.appendChild(copyItem);
+
+                            // Remove menu on click elsewhere
+                            const removeMenu = () => {
+                                if (document.body.contains(menu)) {
+                                    document.body.removeChild(menu);
+                                }
+                                document.removeEventListener('click', removeMenu);
+                            };
+                            setTimeout(() => {
+                                document.addEventListener('click', removeMenu);
+                            }, 0);
+
+                            document.body.appendChild(menu);
+                        }
+                    }}
+                    onCellDoubleClicked={onCellDoubleClicked}
+                    onRowSelected={onRowSelected}
+                    suppressFieldDotNotation={true}
+                ></AgGridReact>
+                {detailsVisible && detailsJson && (
+                    <ReactJson src={detailsJson} displayDataTypes={false} displayObjectSize={false} />
+                )}
             </div>
         </div>
     );
