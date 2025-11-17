@@ -23,9 +23,10 @@ import ReactJson from 'react-json-view';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-balham.css';
-import { CellDoubleClickedEvent, ColDef, RowSelectedEvent } from 'ag-grid-community';
+import { CellDoubleClickedEvent, ColDef, RowSelectedEvent, themeQuartz } from 'ag-grid-community';
+import { useMemo } from 'react'
+
+
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -156,6 +157,16 @@ function renderDataTable(results: KustoResponseDataSet, ele: HTMLElement) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DataTable(props: { columnDefs: any; rowData: any }) {
+    const rowSelection = useMemo(() => {
+        return {
+            mode: 'multiRow' as const,
+            checkboxes: false,
+            headerCheckbox: false,
+            enableClickSelection: true,
+            enableSelectionWithoutKeys: false,
+
+        };
+    }, []);
     function onCellDoubleClicked(e: CellDoubleClickedEvent) {
         if (columnDataType.get(e.colDef.field || '') === 'dynamic' && e.colDef.field) {
             try {
@@ -174,6 +185,8 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
                     ex
                 );
             }
+        } else {
+            console.info(`Column ${e.data[e.colDef.field || '']} is not of dynamic type`);
         }
     }
     function onRowSelected(e: RowSelectedEvent) {
@@ -193,18 +206,46 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
     const [detailsVisible, displayDetails] = React.useState<boolean>(false);
     const [detailsField, setDetailsField] = React.useState<string | undefined>(undefined);
     const [detailsJson, setDetailsJson] = React.useState<any>(undefined);
+    const [darkMode, setDarkMode] = React.useState<boolean>(false);
+
+    const gridTheme = useMemo(() => {
+        return darkMode ? themeQuartz.withParams({
+            backgroundColor: '#1e1e1e',
+            foregroundColor: '#e0e0e0',
+            browserColorScheme: 'dark'
+        }) : themeQuartz;
+    }, [darkMode]);
+
+    const processCellForClipboard = React.useCallback((params) => {
+        return "C-" + params.value;
+    }, []);
+
     return (
-        <div className="ag-theme-balham" style={{ width: '100%', backgroundColor: 'white' }}>
+        <div style={{ width: '100%' }}>
+            <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <input
+                        type="checkbox"
+                        checked={darkMode}
+                        onChange={(e) => setDarkMode(e.target.checked)}
+                    />
+                    Dark Mode
+                </label>
+            </div>
+            <div style={{ width: '100%' }}>
             <AgGridReact
+                theme={gridTheme}
                 domLayout="autoHeight"
                 pagination={true}
                 paginationPageSize={10}
+                paginationPageSizeSelector={[10, 20, 50, 100]}
+                processCellForClipboard={processCellForClipboard}
                 defaultColDef={{ resizable: true, filter: true, sortable: true, floatingFilter: true }}
                 columnDefs={props.columnDefs}
                 rowData={props.rowData}
                 enableCellTextSelection={true}
-                rowSelection="multiple"
-                rowMultiSelectWithClick={false}
+                ensureDomOrder={true}
+                rowSelection={rowSelection}
                 onCellDoubleClicked={onCellDoubleClicked}
                 onRowSelected={onRowSelected}
                 suppressFieldDotNotation={true}
@@ -212,6 +253,7 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
             {detailsVisible && detailsJson && (
                 <ReactJson src={detailsJson} displayDataTypes={false} displayObjectSize={false} />
             )}
+            </div>
         </div>
     );
 }
