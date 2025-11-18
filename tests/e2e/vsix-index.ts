@@ -21,7 +21,7 @@ export function run(): Promise<void> {
 
     const testsRoot = path.resolve(__dirname, '.');
 
-    return new Promise((c, e) => {
+    return new Promise(async (c, e) => {
         // Get test suite from environment variable
         const testLevel = process.env.E2E_TEST_LEVEL || 'comprehensive';
 
@@ -37,40 +37,35 @@ export function run(): Promise<void> {
 
         const testFile = testFileMap[testLevel];
 
-        if (testFile) {
-            if (testFile.includes('*')) {
-                // Handle glob patterns for 'all' test level
-                const files = glob.sync(testFile, { cwd: path.join(testsRoot, 'suite') });
-                console.log(`📋 Running ${files.length} test files matching pattern: ${testFile}`);
+        try {
+            if (testFile) {
+                if (testFile.includes('*')) {
+                    // Handle glob patterns for 'all' test level
+                    const files = await glob(testFile, { cwd: path.join(testsRoot, 'suite') });
+                    console.log(`📋 Running ${files.length} test files matching pattern: ${testFile}`);
 
-                files.forEach((f) => {
-                    const testPath = path.resolve(testsRoot, 'suite', f);
-                    console.log(`📄 Adding test file: ${testPath}`);
+                    files.forEach((f) => {
+                        const testPath = path.resolve(testsRoot, 'suite', f);
+                        console.log(`📄 Adding test file: ${testPath}`);
+                        mocha.addFile(testPath);
+                    });
+
+                    if (files.length === 0) {
+                        console.log(`⚠️ No test files found matching pattern: ${testFile}`);
+                        return c();
+                    }
+                } else {
+                    // Single test file
+                    const testPath = path.resolve(testsRoot, 'suite', testFile);
+                    console.log(`📋 Running test file: ${testPath}`);
+
                     mocha.addFile(testPath);
-                });
-
-                if (files.length === 0) {
-                    console.log(`⚠️ No test files found matching pattern: ${testFile}`);
-                    return c();
                 }
             } else {
-                // Single test file
-                const testPath = path.resolve(testsRoot, 'suite', testFile);
-                console.log(`📋 Running test file: ${testPath}`);
+                // Fallback: run all VSIX test files
+                console.log(`⚠️ Unknown test level '${testLevel}', running all VSIX tests`);
 
-                try {
-                    mocha.addFile(testPath);
-                } catch (error) {
-                    console.error(`❌ Error adding test file: ${error}`);
-                    return e(error);
-                }
-            }
-        } else {
-            // Fallback: run all VSIX test files
-            console.log(`⚠️ Unknown test level '${testLevel}', running all VSIX tests`);
-
-            try {
-                const files = glob.sync('suite/*vsix*.test.js', { cwd: testsRoot });
+                const files = await glob('suite/*vsix*.test.js', { cwd: testsRoot });
 
                 // Add files to the test suite
                 files.forEach((f) => {
@@ -78,13 +73,8 @@ export function run(): Promise<void> {
                     console.log(`📋 Adding test file: ${testPath}`);
                     mocha.addFile(testPath);
                 });
-            } catch (error) {
-                console.error(`❌ Error finding test files: ${error}`);
-                return e(error);
             }
-        }
 
-        try {
             // Run the mocha test
             console.log('🏃 Starting test execution...');
             mocha.run((failures) => {

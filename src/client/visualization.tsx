@@ -141,7 +141,9 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
     }
     const layout = {
         title: chartType.title,
-        autosize: true
+        autosize: true,
+        width: undefined,
+        height: undefined
     };
     // Ensures the chart is resized when the window is resized.
     let previousWidth = window.innerWidth;
@@ -201,8 +203,12 @@ function renderChart(results: KustoResponseDataSet, ele: HTMLElement) {
         if (columns.length > 2) {
             const ele1 = ele.appendChild(document.createElement('div'));
             ele1.style.display = 'inline-block';
+            ele1.style.width = '50%';
+            ele1.style.verticalAlign = 'top';
             const ele2 = ele.appendChild(document.createElement('div'));
             ele2.style.display = 'inline-block';
+            ele2.style.width = '50%';
+            ele2.style.verticalAlign = 'top';
             Plotly.newPlot(ele1, [pieData], layout);
             generateSunburstChart(ele2, results, layout);
         } else {

@@ -158,6 +158,13 @@ function renderDataTable(results: KustoResponseDataSet, ele: HTMLElement) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DataTable(props: { columnDefs: any; rowData: any }) {
+    // Load dark mode preference from localStorage
+    const getInitialDarkMode = () => {
+        const stored = localStorage.getItem('kustoGridDarkMode');
+        return stored === 'true';
+    };
+
+    const [darkMode, setDarkMode] = React.useState<boolean>(getInitialDarkMode());
     const rowSelection = useMemo(() => {
         return {
             mode: 'multiRow' as const,
@@ -206,7 +213,6 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
     const [detailsVisible, displayDetails] = React.useState<boolean>(false);
     const [detailsField, setDetailsField] = React.useState<string | undefined>(undefined);
     const [detailsJson, setDetailsJson] = React.useState<any>(undefined);
-    const [darkMode, setDarkMode] = React.useState<boolean>(false);
 
     const gridTheme = useMemo(() => {
         return darkMode
@@ -217,6 +223,59 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
               })
             : themeQuartz;
     }, [darkMode]);
+
+    // Save dark mode preference to localStorage when changed
+    React.useEffect(() => {
+        localStorage.setItem('kustoGridDarkMode', darkMode ? 'true' : 'false');
+    }, [darkMode]);
+
+    function showCellContextMenu(e: CellContextMenuEvent) {
+        if (e.event) {
+            e.event.preventDefault();
+            // Create custom context menu
+            const menu = document.createElement('div');
+            menu.style.position = 'fixed';
+            const mouseEvent = e.event as MouseEvent;
+            menu.style.top = `${mouseEvent.clientY}px`;
+            menu.style.left = `${mouseEvent.clientX}px`;
+            menu.style.background = '#fff';
+            menu.style.border = '1px solid #ccc';
+            menu.style.padding = '4px 0';
+            menu.style.zIndex = '9999';
+            menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+            menu.style.minWidth = '100px';
+            menu.style.fontSize = '14px';
+            menu.style.cursor = 'pointer';
+            menu.style.color = '#000'; // Set menu text color to black
+
+            const copyItem = document.createElement('div');
+            copyItem.textContent = 'Copy';
+            copyItem.style.padding = '6px 16px';
+            copyItem.style.color = '#000'; // Set copy item text color to black
+            copyItem.onmouseenter = () => (copyItem.style.background = '#eee');
+            copyItem.onmouseleave = () => (copyItem.style.background = '');
+            copyItem.onclick = () => {
+                const cellValue = e.value;
+                if (cellValue !== undefined) {
+                    navigator.clipboard.writeText(cellValue.toString());
+                }
+                document.body.removeChild(menu);
+            };
+            menu.appendChild(copyItem);
+
+            // Remove menu on click elsewhere
+            const removeMenu = () => {
+                if (document.body.contains(menu)) {
+                    document.body.removeChild(menu);
+                }
+                document.removeEventListener('click', removeMenu);
+            };
+            setTimeout(() => {
+                document.addEventListener('click', removeMenu);
+            }, 0);
+            document.body.appendChild(menu);
+        }
+    }
 
     return (
         <div style={{ width: '100%' }}>
@@ -239,52 +298,7 @@ function DataTable(props: { columnDefs: any; rowData: any }) {
                     enableCellTextSelection={true}
                     ensureDomOrder={true}
                     rowSelection={rowSelection}
-                    onCellContextMenu={(e: CellContextMenuEvent) => {
-                        if (e.event) {
-                            e.event.preventDefault();
-                            // Create custom context menu
-                            const menu = document.createElement('div');
-                            menu.style.position = 'fixed';
-                            const mouseEvent = e.event as MouseEvent;
-                            menu.style.top = `${mouseEvent.clientY}px`;
-                            menu.style.left = `${mouseEvent.clientX}px`;
-                            menu.style.background = '#fff';
-                            menu.style.border = '1px solid #ccc';
-                            menu.style.padding = '4px 0';
-                            menu.style.zIndex = '9999';
-                            menu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                            menu.style.minWidth = '100px';
-                            menu.style.fontSize = '14px';
-                            menu.style.cursor = 'pointer';
-
-                            const copyItem = document.createElement('div');
-                            copyItem.textContent = 'Copy';
-                            copyItem.style.padding = '6px 16px';
-                            copyItem.onmouseenter = () => (copyItem.style.background = '#eee');
-                            copyItem.onmouseleave = () => (copyItem.style.background = '');
-                            copyItem.onclick = () => {
-                                const cellValue = e.value;
-                                if (cellValue !== undefined) {
-                                    navigator.clipboard.writeText(cellValue.toString());
-                                }
-                                document.body.removeChild(menu);
-                            };
-                            menu.appendChild(copyItem);
-
-                            // Remove menu on click elsewhere
-                            const removeMenu = () => {
-                                if (document.body.contains(menu)) {
-                                    document.body.removeChild(menu);
-                                }
-                                document.removeEventListener('click', removeMenu);
-                            };
-                            setTimeout(() => {
-                                document.addEventListener('click', removeMenu);
-                            }, 0);
-
-                            document.body.appendChild(menu);
-                        }
-                    }}
+                    onCellContextMenu={showCellContextMenu}
                     onCellDoubleClicked={onCellDoubleClicked}
                     onRowSelected={onRowSelected}
                     suppressFieldDotNotation={true}

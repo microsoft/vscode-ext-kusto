@@ -24,7 +24,7 @@ export function run(): Promise<void> {
     console.log(`🔍 Running VSIX ${testLevel} level tests from: ${testsRoot}`);
     console.log(`📦 VSIX Path: ${process.env.VSIX_PATH}`);
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         // Determine VSIX test pattern based on level
         let testPattern: string;
 
@@ -45,12 +45,9 @@ export function run(): Promise<void> {
 
         console.log(`📋 VSIX Test Pattern: ${testPattern}`);
 
-        // Find VSIX test files
-        glob(testPattern, { cwd: testsRoot }, (err: Error | null, files: string[]) => {
-            if (err) {
-                console.error('❌ Failed to find VSIX test files:', err);
-                return reject(err);
-            }
+        try {
+            // Find VSIX test files
+            const files = await glob(testPattern, { cwd: testsRoot });
 
             console.log(`📁 Found ${files.length} VSIX test files:`);
             files.forEach((file: string) => console.log(`  - ${file}`));
@@ -79,6 +76,9 @@ export function run(): Promise<void> {
                     resolve();
                 }
             });
-        });
+        } catch (err) {
+            console.error('❌ Failed to find VSIX test files:', err);
+            reject(err);
+        }
     });
 }
