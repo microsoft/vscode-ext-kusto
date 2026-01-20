@@ -80,7 +80,10 @@ export class AppInsightsConnection extends BaseConnection<AppInsightsConnectionI
         }
         const secret = await getConnectionSecret(this.info.id);
         if (!secret) {
-            throw new Error('Failed to load secrets from saved information');
+            throw new Error(
+                `Failed to load secrets for App Insights connection "${this.info.displayName}". ` +
+                `The stored credentials may have been cleared. Please delete this connection and re-add it with your AppId and AppKey.`
+            );
         }
         this.secretInfo = JSON.parse(secret) as AppInsightsConnectionSecrets;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
