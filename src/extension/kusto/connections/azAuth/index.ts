@@ -9,6 +9,20 @@ import { AzureAuthenticatedConnectionInfo, IKustoClient, NewableKustoClient } fr
 import { getClusterSchema } from './schema';
 import { LoggerFactory } from '../../../output/logger';
 
+/**
+ * Returns the OAuth resource audience for a given cluster URI.
+ * The ade.loganalytics.io proxies require a token with
+ * aud=https://kusto.kusto.windows.net (KustoServiceResourceId).
+ * Regular ADX clusters accept management.core.windows.net tokens.
+ */
+function getTokenAudience(clusterUri: string): string {
+    const lower = clusterUri.toLowerCase();
+    if (lower.includes('loganalytics.io')) {
+        return 'https://kusto.kusto.windows.net';
+    }
+    return 'https://management.core.windows.net';
+}
+
 export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthenticatedConnectionInfo> {
     private static KustoClientCtor: NewableKustoClient;
     private Logger = LoggerFactory.getLogger('kusto-ext');
@@ -85,8 +99,8 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
             this.Logger.error('Azure CLI auth failed, falling back to interactive:', error as Error);
         }
 
-        const scopes = ['https://management.core.windows.net/.default', 'offline_access'];
-
+        const audience = getTokenAudience(this.info.cluster);
+        const scopes = [`${audience}/.default`, 'offline_access'];
         const session = await authentication.getSession('microsoft', scopes, { createIfNone: true });
         if (session?.accessToken) {
             return session.accessToken;
@@ -103,7 +117,8 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
 
         try {
             const credential = new AzureCliCredential();
-            const token = await credential.getToken('https://management.core.windows.net/.default');
+            const audience = getTokenAudience(this.info.cluster);
+            const token = await credential.getToken(`${audience}/.default`);
             if (token && token.token) {
                 return token.token;
             } else {

@@ -127,7 +127,7 @@ async function addConnection(multiStepInput: MultiStepInput<State>, state: State
                 {
                     label: addCluster,
                     description: 'Authenticate using Azure Identity',
-                    detail: `E.g. https://help.kusto.windows.net`
+                    detail: `E.g. https://help.kusto.windows.net  or  https://ade.loganalytics.io/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}`
                 },
                 {
                     label: addAppInsight,
@@ -260,6 +260,11 @@ async function selectDatabase(multiStepInput: MultiStepInput<State>, state: Stat
     }
 }
 
+// Log Analytics ADE proxy URL pattern:
+// https://ade.loganalytics.io/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}
+const logAnalyticsUrlPattern =
+    /^https:\/\/ade\.loganalytics\.io\/subscriptions\/[^/]+\/resourceGroups\/[^/]+\/providers\/Microsoft\.OperationalInsights\/workspaces\/[^/]+$/i;
+
 async function validateClusterConnection(clusterUri = ''): Promise<string | undefined> {
     const connections = getCachedConnections();
     if (clusterUri.length === 0) {
@@ -268,6 +273,14 @@ async function validateClusterConnection(clusterUri = ''): Promise<string | unde
     if (connections.find((item) => 'cluster' in item && item.cluster === clusterUri)) {
         return 'Entered cluster uri already exists';
     }
+    
+    if (clusterUri.toLowerCase().includes('loganalytics.io')) {
+        if (!logAnalyticsUrlPattern.test(clusterUri)) {
+            return 'Invalid Log Analytics URL. Expected: https://ade.loganalytics.io/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}';
+        }
+        return undefined;
+    }
+    
     try {
         const info = AzureAuthenticatedConnection.from({ cluster: clusterUri }).info;
         await fromConnectionInfo(info).getSchema({ hideProgress: true });
