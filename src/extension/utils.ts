@@ -133,7 +133,7 @@ export function isNotebookCell(document: NotebookDocument | TextDocument) {
     return document.uri.scheme === NotebookCellScheme;
 }
 export function getHash(value: string) {
-    return createHash('sha1').update(value).digest('hex');
+    return createHash('sha256').update(value).digest('hex');
 }
 
 export function getNotebookDocument(document: TextDocument | NotebookDocument): NotebookDocument | undefined {
