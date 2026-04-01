@@ -9,5 +9,14 @@ export function getClusterDisplayName(clusterUri: string | EngineSchema | DeepRe
     } else {
         uri = clusterUri.cluster.connectionString;
     }
-    return Uri.parse(uri).authority.split('.')[0];
+    const parsed = Uri.parse(uri);
+    // For Log Analytics ADE proxy URLs, extract the workspace name from the path.
+    // e.g. https://ade.loganalytics.io/subscriptions/.../workspaces/{workspaceName}
+    if (parsed.authority.toLowerCase().includes('loganalytics.io')) {
+        const match = parsed.path.match(/\/workspaces\/([^/]+)/i);
+        if (match) {
+            return match[1];
+        }
+    }
+    return parsed.authority.split('.')[0];
 }

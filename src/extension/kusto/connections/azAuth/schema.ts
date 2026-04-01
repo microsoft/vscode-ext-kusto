@@ -3,23 +3,31 @@ import type { Database, EngineSchema, Function, InputParameter, Table, TableEnti
 import { GlobalMementoKeys } from '../../../constants';
 import { getFromGlobalCache, updateGlobalCache } from '../../../cache';
 import { fromConnectionInfo } from '..';
+import { LoggerFactory } from '../../../output/logger';
+
+const Logger = LoggerFactory.getLogger('kusto-ext');
 
 export async function getClusterSchema(connection: AzureAuthenticatedConnectionInfo): Promise<EngineSchema> {
     const client = await fromConnectionInfo(connection).getKustoClient();
     const cluster = connection.cluster;
-    const databaseNames = await getDatabases(client, cluster, true);
-    const databases = await Promise.all(
-        databaseNames.map((database) => getDatabaseSchema(client, { ...connection, database: database }, true))
-    );
-    const engineSchema: EngineSchema = {
-        cluster: {
-            connectionString: cluster,
-            databases
-        },
-        clusterType: 'Engine',
-        database: undefined
-    };
-    return engineSchema;
+    try {
+        const databaseNames = await getDatabases(client, cluster, true);
+        const databases = await Promise.all(
+            databaseNames.map((database) => getDatabaseSchema(client, { ...connection, database: database }, true))
+        );
+        const engineSchema: EngineSchema = {
+            cluster: {
+                connectionString: cluster,
+                databases
+            },
+            clusterType: 'Engine',
+            database: undefined
+        };
+        return engineSchema;
+    } catch (ex) {
+        Logger.error(`Failed to fetch schema for cluster ${cluster}:`, ex as Error);
+        throw ex;
+    }
 }
 
 const databasePromises = new Map<string, Promise<string[]>>();
@@ -44,6 +52,11 @@ async function getDatabases(client: IKustoClient, clusterUri: string, ignoreCach
                 (item) => item.name?.toLowerCase() === 'databasename'
             );
             if (!dbNameColumn) {
+                const colNames = result.primaryResults[0].columns.map((c) => c.name).join(', ');
+                Logger.error(
+                    `Failed to find column 'DatabaseName' for cluster ${clusterUri}. Available columns: ${colNames}`,
+                    new Error('Missing DatabaseName column')
+                );
                 throw new Error(
                     `Failed to find column 'DatabaseName' when querying databases for cluster ${clusterUri}`
                 );
@@ -51,6 +64,9 @@ async function getDatabases(client: IKustoClient, clusterUri: string, ignoreCach
             const dbNames: string[] = result.primaryResults[0]._rows.map((item) => item[dbNameColumn.ordinal]);
             await updateGlobalCache(key, dbNames);
             return dbNames;
+        } catch (ex) {
+            Logger.error(`'.show databases' failed for cluster ${clusterUri}:`, ex as Error);
+            throw ex;
         } finally {
             databasePromises.delete(key);
         }
@@ -178,14 +194,16 @@ async function getDatabaseSchema(
             }
             const schema: DatabaseSchemaResponse = JSON.parse(result.primaryResults[0]._rows[0]);
             const dbSchemaResponse = Object.keys(schema.Databases).map((name) => schema.Databases[name])[0];
-            const tables = Object.keys(dbSchemaResponse.Tables).map((name) => dbSchemaResponse.Tables[name]);
-            const externalTables = Object.keys(dbSchemaResponse.ExternalTables).map(
+            const tables = Object.keys(dbSchemaResponse.Tables ?? {}).map((name) => dbSchemaResponse.Tables[name]);
+            const externalTables = Object.keys(dbSchemaResponse.ExternalTables ?? {}).map(
                 (name) => dbSchemaResponse.ExternalTables[name]
             );
-            const views = Object.keys(dbSchemaResponse.MaterializedViews).map(
+            const views = Object.keys(dbSchemaResponse.MaterializedViews ?? {}).map(
                 (name) => dbSchemaResponse.MaterializedViews[name]
             );
-            const functions = Object.keys(dbSchemaResponse.Functions).map((name) => dbSchemaResponse.Functions[name]);
+            const functions = Object.keys(dbSchemaResponse.Functions ?? {}).map(
+                (name) => dbSchemaResponse.Functions[name]
+            );
             const dbSchema: Database = {
                 name: dbSchemaResponse.Name,
                 majorVersion: dbSchemaResponse.MajorVersion,
