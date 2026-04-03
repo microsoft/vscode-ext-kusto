@@ -37,6 +37,21 @@ The authentication process will try each method in sequence until successful aut
 
 Note: For local development, Azure CLI or VS Code authentication is recommended.
 
+## Application Insights Integration
+
+The extension now provides improved support for Application Insights queries:
+
+- **Trusted Endpoint Configuration**: The Application Insights API endpoint (`api.applicationinsights.io`) is automatically registered as a trusted endpoint, resolving previous "valid authentication not provided" errors
+- **Custom API Client**: Uses a specialized client for Application Insights that properly handles API key authentication and response formats
+- **Improved Error Messages**: Clearer error messages when App Insights credentials are missing or expired, with guidance on how to resolve the issue
+
+### Connecting to Application Insights
+
+1. Use the command `Configure Kusto Connection`
+2. Select Application Insights as the connection type
+3. Enter your Application Insights App ID and App Key
+4. The extension will securely store your credentials
+
 ## Getting Started
 
 - Open a `*.kql|*.csl` file and start typing to get code completion

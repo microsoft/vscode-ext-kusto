@@ -26,19 +26,33 @@ export function getTabularData(results: KustoResponseDataSet): TabularData | und
     if (!hasDataTable(results)) {
         return;
     }
-    const primaryTable = results.primaryResults[0];
+    const primaryTable = results.primaryResults[0] as any;
     const fields: Field[] = primaryTable.columns as any;
     const dataPoints: Datapoint[] = [];
-    for (const row of primaryTable.rows()) {
-        const rowData: Datapoint = {};
-        primaryTable.columns.forEach((col) => {
-            if (col.name) {
-                const value = row.raw ? row.raw[col.ordinal] : row.toJSON()[col.name];
-                rowData[col.name] = value;
+
+    // Handle both KustoResultTable and plain JSON from notebook serialization
+    if (typeof primaryTable.rows === 'function') {
+        // KustoResultTable - use rows() generator
+        for (const row of primaryTable.rows()) {
+            const rowData: Datapoint = {};
+            primaryTable.columns.forEach((col: any) => {
+                if (col.name) {
+                    const value = row.raw ? row.raw[col.ordinal] : row.toJSON()[col.name];
+                    rowData[col.name] = value;
+                }
+            });
+            dataPoints.push(rowData);
+        }
+    } else if (primaryTable.data) {
+        // Plain JSON from serialization - use data array directly
+        return {
+            data: primaryTable.data,
+            schema: {
+                fields: fields
             }
-        });
-        dataPoints.push(rowData);
+        };
     }
+
     return {
         data: dataPoints,
         schema: {

@@ -14,7 +14,8 @@ import { registerInteractiveExperience } from './interactive/interactive';
 import { registerExportCommand } from './content/export';
 import { StatusBarProvider } from './kernel/statusbar';
 import { AzureAuthenticatedConnection } from './kusto/connections/azAuth';
-import { Client as KustoClient } from 'azure-kusto-data';
+import { Client as KustoClient, kustoTrustedEndpoints, MatchRule } from 'azure-kusto-data';
+import { KustoClient as AppInsightsKustoClient } from './kusto/webClient';
 import { registerConnection } from './kusto/connections/baseConnection';
 import { AppInsightsConnection } from './kusto/connections/appInsights';
 import { CellCodeLensProvider } from './interactive/cells';
@@ -25,6 +26,9 @@ import { registerKqlNotebookConnectionHandler } from './content/kqlConnection';
 import { regsisterQuickFixAction } from './content/quickFix';
 
 export async function activate(context: ExtensionContext) {
+    // Add Application Insights API endpoint as a trusted endpoint for the Kusto SDK
+    kustoTrustedEndpoints.addTrustedHosts([new MatchRule('api.applicationinsights.io', true)], false);
+
     registerDisposableRegistry(context);
     initializeGlobalCache(context.globalState, context.workspaceState);
     initializeConstants(context.extension.packageJSON.enableProposedApi); // In browser context dont use proposed API, try to always use stable stuff...
@@ -38,7 +42,7 @@ export async function activate(context: ExtensionContext) {
         'cluster' in info ? undefined : AppInsightsConnection.connectionInfofrom(info)
     );
     AzureAuthenticatedConnection.registerKustoClient(KustoClient);
-    AppInsightsConnection.registerKustoClient(KustoClient);
+    AppInsightsConnection.registerKustoClient(AppInsightsKustoClient);
     KernelProvider.register();
     StatusBarProvider.register();
     ContentProvider.register();
