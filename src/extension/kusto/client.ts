@@ -1,5 +1,6 @@
 import type { KustoResponseDataSet } from 'azure-kusto-data';
 import { workspace, NotebookDocument, TextDocument } from 'vscode';
+import { isEqual } from 'lodash';
 // import { addDocumentConnectionHandler, ensureDocumentHasConnectionInfo } from './connections/notebookConnection';
 import { IConnection, IConnectionInfo, IKustoClient } from './connections/types';
 import { IDisposable } from '../types';
@@ -33,7 +34,17 @@ export class Client implements IDisposable {
     ): Promise<Client | undefined> {
         const client = clientMap.get(document);
         if (client) {
-            return client;
+            // If the caller specified a connection that doesn't match the cached
+            // client's connection (e.g. user switched kernel since last execution),
+            // drop the stale entry and recreate. Otherwise reuse.
+            if (!connectionInfo) {
+                return client;
+            }
+            const existing = await client;
+            if (existing && isEqual(existing.connectionInfo, connectionInfo)) {
+                return client;
+            }
+            clientMap.delete(document);
         }
 
         // eslint-disable-next-line no-async-promise-executor

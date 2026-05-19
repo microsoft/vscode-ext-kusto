@@ -15,7 +15,7 @@ import {
 } from 'vscode';
 import { commands } from 'vscode';
 import { InteractiveWindowView, registerDisposable } from '../utils';
-import { KernelPerConnection, registerController } from '../kernel/provider';
+import { getSelectedController, KernelPerConnection, registerController } from '../kernel/provider';
 import { FoldingRangesProvider } from '../languageServer';
 import { ensureDocumentHasConnectionInfo } from '../kusto/connections/notebookConnection';
 
@@ -69,11 +69,16 @@ async function executeSelectedQuery(document: TextDocument, start: number, end: 
     if (!info) {
         return;
     }
-    const [notebook, controller] = info;
+    const [notebook, cachedController] = info;
     // Ensure its visible.
     await commands.executeCommand('interactive.open', undefined, notebook.uri, undefined);
     const cell = await createCell(notebook, document, start, end);
-    await controller.executeInteractive([cell], document);
+    // Prefer the controller currently selected on the interactive notebook so
+    // that if the user picked a different kernel in the window we honor it.
+    // Fall back to the originally-resolved controller in case the selection
+    // signal hasn't landed yet (e.g. first run before any onDidChangeSelectedNotebooks).
+    const activeController = getSelectedController(notebook) ?? cachedController;
+    await activeController.executeInteractive([cell], document);
 }
 
 async function pickConnection(document: TextDocument) {
