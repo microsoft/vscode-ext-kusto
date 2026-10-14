@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - master
-      - feature/**
     paths-ignore:
       - '.vscode/**'
       - '*.md'
@@ -35,17 +34,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.APP_ID }}
-          tenant-id: ${{ secrets.TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        uses: actions/checkout@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -61,6 +53,13 @@ jobs:
 
       - name: Compile E2E tests
         run: npm run compile:e2e
+
+      - name: Azure login
+        uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Run E2E VSIX tests (Linux)
         if: runner.os == 'Linux'
@@ -81,7 +80,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           name: test-results-${{ matrix.os }}
           path: |
@@ -91,7 +90,7 @@ jobs:
 
       - name: Upload VSIX artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           name: kusto-notebooks-vsix-${{ matrix.os }}
           path: '*.vsix'
