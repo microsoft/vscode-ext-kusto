@@ -64,9 +64,8 @@ export class AppInsightsConnection extends BaseConnection<AppInsightsConnectionI
     public async getKustoClient(): Promise<IKustoClient> {
         const secret = await this.loadSecrets();
         const applicationUrl = getAppInsightsApplicationUrl(secret.appId);
-        const clusterConectionString = `data source=${applicationUrl};appclientid=${secret.appId}`;
 
-        const kcs = KustoConnectionStringBuilder.withAccessToken(clusterConectionString, secret.appKey);
+        const kcs = KustoConnectionStringBuilder.withAccessToken(applicationUrl, secret.appKey);
         // const client = new KustoClient(kcs);
         const client = new AppInsightsConnection.KustoClientCtor(kcs);
         client.headers = client.headers || {};

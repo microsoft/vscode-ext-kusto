@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { runTests, downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath } from '@vscode/test-electron';
+import { downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath, runTests } from '@vscode/test-electron';
 
 /**
  * Enhanced E2E Test Runner with VSIX Support
@@ -13,8 +13,8 @@ import { runTests, downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePat
  */
 
 interface TestConfig {
-    extensionPath: string;
     vsixPath?: string;
+    vscodeExecutablePath?: string;
     testSuite: 'smoke' | 'integration' | 'ui' | 'all';
     vscodeVersion?: string;
     workspaceDir?: string;
@@ -105,19 +105,36 @@ class VSIXTestRunner {
     /**
      * Install extension from VSIX into test VS Code instance
      */
-    async installExtension(vsixPath: string, vscodeExecutablePath: string): Promise<void> {
+    async installExtension(
+        vsixPath: string,
+        vscodeExecutablePath: string,
+        extensionsPath: string,
+        userDataPath: string
+    ): Promise<void> {
         const { spawn } = await import('child_process');
 
         console.log('📦 Installing extension from VSIX...');
 
-        // Get CLI path from VS Code executable
-        const [cli] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
+        const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath, {
+            reuseMachineInstall: true
+        });
 
         return new Promise((resolve, reject) => {
-            const installCmd = spawn(cli, ['--install-extension', vsixPath], {
-                stdio: 'inherit'
-            });
+            const installCmd = spawn(
+                cli,
+                [
+                    ...cliArgs,
+                    '--install-extension',
+                    vsixPath,
+                    `--extensions-dir=${extensionsPath}`,
+                    `--user-data-dir=${userDataPath}`
+                ],
+                {
+                    stdio: 'inherit'
+                }
+            );
 
+            installCmd.on('error', reject);
             installCmd.on('close', (code) => {
                 if (code !== 0) {
                     reject(new Error(`Extension installation failed with code ${code}`));
@@ -133,13 +150,20 @@ class VSIXTestRunner {
      * Run E2E tests with installed extension
      */
     async runTests(config: TestConfig): Promise<void> {
-        const vscodeExecutablePath = this.vscodePath || (await this.setupVSCode(config.vscodeVersion));
+        const vscodeExecutablePath =
+            config.vscodeExecutablePath || this.vscodePath || (await this.setupVSCode(config.vscodeVersion));
 
         // Build VSIX if not provided
         const vsixPath = config.vsixPath || (await this.buildVSIX());
+        const extensionsPath = path.join(this.testResourcesPath, 'extensions');
+        const userDataPath = path.join(this.testResourcesPath, 'user-data');
+        fs.rmSync(extensionsPath, { recursive: true, force: true });
+        fs.rmSync(userDataPath, { recursive: true, force: true });
+        fs.mkdirSync(extensionsPath, { recursive: true });
+        fs.mkdirSync(userDataPath, { recursive: true });
 
         // Install extension
-        await this.installExtension(vsixPath, vscodeExecutablePath);
+        await this.installExtension(vsixPath, vscodeExecutablePath, extensionsPath, userDataPath);
 
         // Prepare test workspace
         const testWorkspace = config.workspaceDir || path.join(__dirname, '../fixtures/test-workspace');
@@ -153,20 +177,21 @@ class VSIXTestRunner {
         try {
             await runTests({
                 vscodeExecutablePath,
-                extensionDevelopmentPath: config.extensionPath,
+                extensionDevelopmentPath: path.join(this.workspaceRoot, 'tests', 'e2e', 'test-harness'),
                 extensionTestsPath: testSuitePath,
                 launchArgs: [
                     testWorkspace,
-                    '--disable-extensions', // Disable other extensions for clean testing
-                    '--disable-workspace-trust', // Skip trust dialog
-                    '--skip-welcome', // Skip welcome screen
-                    '--disable-telemetry' // Disable telemetry
+                    `--extensions-dir=${extensionsPath}`,
+                    `--user-data-dir=${userDataPath}`,
+                    '--disable-workspace-trust',
+                    '--skip-welcome',
+                    '--disable-telemetry'
                 ],
                 extensionTestsEnv: {
+                    ...process.env,
                     E2E_TEST_LEVEL: config.testSuite,
                     VSIX_PATH: vsixPath,
-                    TEST_RESOURCES_PATH: this.testResourcesPath,
-                    ...process.env
+                    TEST_RESOURCES_PATH: this.testResourcesPath
                 }
             });
 
@@ -203,15 +228,24 @@ async function main(): Promise<void> {
     const testLevel = (process.env.E2E_TEST_LEVEL as any) || 'smoke';
     const vscodeVersion = process.env.VSCODE_VERSION || 'stable';
     const vsixPath = process.env.VSIX_PATH ? path.resolve(process.env.VSIX_PATH) : undefined;
+    const vscodeExecutablePath = process.env.VSCODE_EXECUTABLE_PATH
+        ? path.resolve(process.env.VSCODE_EXECUTABLE_PATH)
+        : undefined;
     if (vsixPath && !fs.existsSync(vsixPath)) {
         throw new Error(`Provided VSIX_PATH does not exist: ${vsixPath}`);
+    }
+    if (vscodeExecutablePath && !fs.existsSync(vscodeExecutablePath)) {
+        throw new Error(`Provided VSCODE_EXECUTABLE_PATH does not exist: ${vscodeExecutablePath}`);
+    }
+    if (vsixPath && !vscodeExecutablePath) {
+        throw new Error('VSCODE_EXECUTABLE_PATH is required when using a prebuilt VSIX.');
     }
 
     const runner = new VSIXTestRunner();
 
     const config: TestConfig = {
-        extensionPath: path.resolve(__dirname, '../../..'),
         vsixPath,
+        vscodeExecutablePath,
         testSuite: testLevel,
         vscodeVersion
     };

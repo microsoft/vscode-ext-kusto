@@ -7,33 +7,39 @@ const { getAppInsightsApplicationUrl, normalizeAppInsightsDataSource } = require
 };
 
 suite('Application Insights URL validation', () => {
-    test('constructs an encoded application URL', () => {
-        assert.equal(
-            getAppInsightsApplicationUrl('app/id?value'),
-            'https://api.applicationinsights.io/v1/apps/app%2Fid%3Fvalue'
-        );
+    const appId = '00000000-0000-4000-8000-000000000001';
+
+    test('constructs an application URL for a valid GUID', () => {
+        assert.equal(getAppInsightsApplicationUrl(` ${appId} `), `https://api.applicationinsights.io/v1/apps/${appId}`);
     });
 
     test('accepts the supported application data source', () => {
         assert.equal(
-            normalizeAppInsightsDataSource('https://api.applicationinsights.io/v1/apps/application-id'),
+            normalizeAppInsightsDataSource(`https://api.applicationinsights.io/v1/apps/${appId}`),
             'https://api.applicationinsights.io'
         );
     });
 
     const invalidUrls = [
-        'http://api.applicationinsights.io/v1/apps/application-id',
-        'https://attacker.example/v1/apps/application-id',
+        `http://api.applicationinsights.io/v1/apps/${appId}`,
+        `https://attacker.example/v1/apps/${appId}`,
         'https://api.applicationinsights.io/v1/apps',
-        'https://api.applicationinsights.io/v1/apps/application-id/query',
-        'https://api.applicationinsights.io/v1/apps/application-id?query=value',
-        'https://api.applicationinsights.io/v1/apps/application-id#fragment',
-        'https://api.applicationinsights.io:8443/v1/apps/application-id'
+        `https://api.applicationinsights.io/v1/apps/${appId}/query`,
+        `https://api.applicationinsights.io/v1/apps/${appId}?query=value`,
+        `https://api.applicationinsights.io/v1/apps/${appId}#fragment`,
+        `https://api.applicationinsights.io:8443/v1/apps/${appId}`,
+        'https://api.applicationinsights.io/v1/apps/not-a-guid'
     ];
 
     for (const value of invalidUrls) {
         test(`rejects ${value}`, () => {
             assert.throws(() => normalizeAppInsightsDataSource(value));
+        });
+    }
+
+    for (const value of ['', 'not-a-guid', '00000000-0000-0000-0000-000000000000;data source=https://attacker']) {
+        test(`rejects application ID ${value}`, () => {
+            assert.throws(() => getAppInsightsApplicationUrl(value));
         });
     }
 });
