@@ -180,13 +180,14 @@ class VSIXTestRunner {
     /**
      * Cleanup test resources
      */
-    async cleanup(): Promise<void> {
+    async cleanup(removeVsix = true): Promise<void> {
         console.log('🧹 Cleaning up test resources...');
 
-        // Remove VSIX file
-        const vsixPath = path.join(this.workspaceRoot, 'kusto-notebooks.vsix');
-        if (fs.existsSync(vsixPath)) {
-            fs.unlinkSync(vsixPath);
+        if (removeVsix) {
+            const vsixPath = path.join(this.workspaceRoot, 'kusto-notebooks.vsix');
+            if (fs.existsSync(vsixPath)) {
+                fs.unlinkSync(vsixPath);
+            }
         }
 
         // Note: Keep test-resources directory for faster subsequent runs
@@ -201,11 +202,16 @@ class VSIXTestRunner {
 async function main(): Promise<void> {
     const testLevel = (process.env.E2E_TEST_LEVEL as any) || 'smoke';
     const vscodeVersion = process.env.VSCODE_VERSION || 'stable';
+    const vsixPath = process.env.VSIX_PATH ? path.resolve(process.env.VSIX_PATH) : undefined;
+    if (vsixPath && !fs.existsSync(vsixPath)) {
+        throw new Error(`Provided VSIX_PATH does not exist: ${vsixPath}`);
+    }
 
     const runner = new VSIXTestRunner();
 
     const config: TestConfig = {
         extensionPath: path.resolve(__dirname, '../../..'),
+        vsixPath,
         testSuite: testLevel,
         vscodeVersion
     };
@@ -225,7 +231,7 @@ async function main(): Promise<void> {
         process.exit(1);
     } finally {
         if (process.env.CLEANUP_AFTER_TESTS !== 'false') {
-            await runner.cleanup();
+            await runner.cleanup(!config.vsixPath);
         }
     }
 }

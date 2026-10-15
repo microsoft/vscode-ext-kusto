@@ -5,7 +5,7 @@ import { initialize as initializeConstants } from './constants';
 import { initialize as initializeLanguageService } from './languageServer';
 import { ContentProvider } from './content/provider';
 import { KernelProvider } from './kernel/provider';
-import { KustoClient } from './kusto/webClient';
+import { AppInsightsKustoClient, KustoClient } from './kusto/webClient';
 import { AzureAuthenticatedConnection } from './kusto/connections/azAuth';
 import { registerConnection } from './kusto/connections/baseConnection';
 import { AppInsightsConnection } from './kusto/connections/appInsights';
@@ -38,7 +38,7 @@ export async function activate(context: ExtensionContext) {
         'cluster' in info ? undefined : AppInsightsConnection.connectionInfofrom(info)
     );
     AzureAuthenticatedConnection.registerKustoClient(KustoClient);
-    AppInsightsConnection.registerKustoClient(KustoClient);
+    AppInsightsConnection.registerKustoClient(AppInsightsKustoClient);
     KernelProvider.register();
     // StatusBarProvider.register();
     ContentProvider.register();

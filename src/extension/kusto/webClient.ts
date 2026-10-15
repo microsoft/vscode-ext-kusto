@@ -11,6 +11,7 @@ import { IKustoClient } from './connections/types';
 import axios from 'axios';
 import * as uuid from 'uuid';
 import { normalizeKustoClusterUrl } from './connections/clusterUrl';
+import { normalizeAppInsightsDataSource } from './connections/appInsights/url';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,9 +32,12 @@ export class KustoClient implements IKustoClient {
     private readonly cluster: string;
     public readonly headers: Record<string, string> = {};
     public readonly endpoints: Record<string, string> = {};
-    constructor(kcsb: string | KustoConnectionStringBuilder) {
+    constructor(
+        kcsb: string | KustoConnectionStringBuilder,
+        normalizeDataSource: (value: string) => string = normalizeKustoClusterUrl
+    ) {
         this.connectionString = typeof kcsb === 'string' ? new KustoConnectionStringBuilder(kcsb) : kcsb;
-        this.cluster = normalizeKustoClusterUrl(this.connectionString.dataSource);
+        this.cluster = normalizeDataSource(this.connectionString.dataSource);
         this.endpoints = {
             [ExecutionType.Mgmt]: `${this.cluster}/v1/rest/mgmt`,
             [ExecutionType.Query]: `${this.cluster}/v2/rest/query`,
@@ -199,5 +203,11 @@ export class KustoClient implements IKustoClient {
         return executionType == ExecutionType.Query || executionType == ExecutionType.QueryV1
             ? QUERY_TIMEOUT_IN_MILLISECS
             : COMMAND_TIMEOUT_IN_MILLISECS;
+    }
+}
+
+export class AppInsightsKustoClient extends KustoClient {
+    constructor(kcsb: string | KustoConnectionStringBuilder) {
+        super(kcsb, normalizeAppInsightsDataSource);
     }
 }

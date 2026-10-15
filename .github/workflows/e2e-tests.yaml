@@ -54,6 +54,9 @@ jobs:
       - name: Compile E2E tests
         run: npm run compile:e2e
 
+      - name: Package VSIX
+        run: npm run package
+
       - name: Azure login
         uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
         with:
@@ -63,17 +66,21 @@ jobs:
 
       - name: Run E2E VSIX tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a npm run test:e2e:vsix:all
+        run: xvfb-run -a node ./out/tests/e2e/runVSIXTests.js
         env:
           DISPLAY: ':99.0'
+          E2E_TEST_LEVEL: all
+          VSIX_PATH: ${{ github.workspace }}/kusto-notebooks.vsix
           AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
           KUSTO_TEST_CLUSTER: ${{ secrets.CLUSTER }}
           KUSTO_TEST_DATABASE: ${{ secrets.DATABASE }}
 
       - name: Run E2E VSIX tests (macOS)
         if: runner.os == 'macOS'
-        run: npm run test:e2e:vsix:all
+        run: node ./out/tests/e2e/runVSIXTests.js
         env:
+          E2E_TEST_LEVEL: all
+          VSIX_PATH: ${{ github.workspace }}/kusto-notebooks.vsix
           AZURE_TENANT_ID: ${{ secrets.TENANT_ID }}
           KUSTO_TEST_CLUSTER: ${{ secrets.CLUSTER }}
           KUSTO_TEST_DATABASE: ${{ secrets.DATABASE }}

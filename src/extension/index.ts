@@ -25,6 +25,7 @@ import { registerKqlNotebookConnectionHandler } from './content/kqlConnection';
 import { regsisterQuickFixAction } from './content/quickFix';
 
 export { isValidKustoClusterUrl, normalizeKustoClusterUrl } from './kusto/connections/clusterUrl';
+export { getAppInsightsApplicationUrl, normalizeAppInsightsDataSource } from './kusto/connections/appInsights/url';
 
 export async function activate(context: ExtensionContext) {
     registerDisposableRegistry(context);

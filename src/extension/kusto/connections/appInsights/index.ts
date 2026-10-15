@@ -11,6 +11,7 @@ import {
 } from '../storage';
 import { AppInsightsConnectionInfo, AppInsightsConnectionSecrets, IKustoClient, NewableKustoClient } from '../types';
 import { getClusterSchema } from './schema';
+import { getAppInsightsApplicationUrl } from './url';
 
 export class AppInsightsConnection extends BaseConnection<AppInsightsConnectionInfo> {
     private static KustoClientCtor: NewableKustoClient;
@@ -62,7 +63,8 @@ export class AppInsightsConnection extends BaseConnection<AppInsightsConnectionI
     }
     public async getKustoClient(): Promise<IKustoClient> {
         const secret = await this.loadSecrets();
-        const clusterConectionString = `data source=https://api.applicationinsights.io/v1/apps/${secret.appId};appclientid=${secret.appId}`;
+        const applicationUrl = getAppInsightsApplicationUrl(secret.appId);
+        const clusterConectionString = `data source=${applicationUrl};appclientid=${secret.appId}`;
 
         const kcs = KustoConnectionStringBuilder.withAccessToken(clusterConectionString, secret.appKey);
         // const client = new KustoClient(kcs);
@@ -70,8 +72,8 @@ export class AppInsightsConnection extends BaseConnection<AppInsightsConnectionI
         client.headers = client.headers || {};
         client.headers['x-api-key'] = secret.appKey;
         client.headers['Prefer'] = 'ai.response-thinning=false';
-        client.endpoints['query'] = `https://api.applicationinsights.io/v1/apps/${secret.appId}/query`;
-        client.endpoints['queryv1'] = `https://api.applicationinsights.io/v1/apps/${secret.appId}/query`;
+        client.endpoints['query'] = `${applicationUrl}/query`;
+        client.endpoints['queryv1'] = `${applicationUrl}/query`;
         return client;
     }
     private async loadSecrets(): Promise<AppInsightsConnectionSecrets> {
