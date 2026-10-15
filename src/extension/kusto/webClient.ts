@@ -10,6 +10,7 @@ const azurePackage = require('../../../node_modules/azure-kusto-data/package.jso
 import { IKustoClient } from './connections/types';
 import axios from 'axios';
 import * as uuid from 'uuid';
+import { normalizeKustoClusterUrl } from './connections/clusterUrl';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -27,12 +28,12 @@ enum ExecutionType {
 
 export class KustoClient implements IKustoClient {
     private readonly connectionString: KustoConnectionStringBuilder;
-    private readonly cluster?: string;
+    private readonly cluster: string;
     public readonly headers: Record<string, string> = {};
     public readonly endpoints: Record<string, string> = {};
     constructor(kcsb: string | KustoConnectionStringBuilder) {
         this.connectionString = typeof kcsb === 'string' ? new KustoConnectionStringBuilder(kcsb) : kcsb;
-        this.cluster = this.connectionString.dataSource;
+        this.cluster = normalizeKustoClusterUrl(this.connectionString.dataSource);
         this.endpoints = {
             [ExecutionType.Mgmt]: `${this.cluster}/v1/rest/mgmt`,
             [ExecutionType.Query]: `${this.cluster}/v2/rest/query`,

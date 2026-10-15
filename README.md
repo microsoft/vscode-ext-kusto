@@ -37,6 +37,16 @@ The authentication process will try each method in sequence until successful aut
 
 Note: For local development, Azure CLI or VS Code authentication is recommended.
 
+## Workspace Trust and Connection Safety
+
+Azure-authenticated Kusto connections do not acquire credentials or run queries while VS Code is in Restricted
+Mode, and automatic notebook schema loading is disabled. Use the **Workspaces: Manage Workspace Trust** command to
+trust the folder containing a notebook before connecting.
+
+Notebook cluster metadata is accepted only for HTTPS endpoints trusted by the installed Kusto SDK for the Microsoft
+public cloud. Unsupported connection metadata is ignored without removing the notebook's cells; select a trusted
+Kusto connection before running queries.
+
 ## Getting Started
 
 - Open a `*.kql|*.csl` file and start typing to get code completion

@@ -24,6 +24,8 @@ import { regsiterSchemaTool } from './llm/schemaTool';
 import { registerKqlNotebookConnectionHandler } from './content/kqlConnection';
 import { regsisterQuickFixAction } from './content/quickFix';
 
+export { isValidKustoClusterUrl, normalizeKustoClusterUrl } from './kusto/connections/clusterUrl';
+
 export async function activate(context: ExtensionContext) {
     registerDisposableRegistry(context);
     initializeGlobalCache(context.globalState, context.workspaceState);

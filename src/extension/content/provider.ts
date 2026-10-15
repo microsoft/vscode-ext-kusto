@@ -72,16 +72,24 @@ export class ContentProvider implements vscode.NotebookSerializer {
             }
 
             if (connectionInNotebookMetadata) {
-                let connection: IConnectionInfo | undefined = fromMetadata(connectionInNotebookMetadata);
+                let connection: IConnectionInfo | undefined;
                 if ('cluster' in connectionInNotebookMetadata) {
-                    connection = AzureAuthenticatedConnection.connectionInfofrom({
-                        cluster: connectionInNotebookMetadata.cluster,
-                        database: connectionInNotebookMetadata.database
-                    });
-                }
-                if ('appInsightsId' in connectionInNotebookMetadata) {
+                    try {
+                        connection = AzureAuthenticatedConnection.connectionInfofrom({
+                            cluster: connectionInNotebookMetadata.cluster,
+                            database: connectionInNotebookMetadata.database
+                        });
+                    } catch (ex) {
+                        console.error('Rejected invalid Kusto notebook connection metadata', ex);
+                        void vscode.window.showWarningMessage(
+                            'The notebook connection was not loaded because its Kusto cluster URI is not supported. Select a trusted Kusto connection before running queries.'
+                        );
+                    }
+                } else if ('appInsightsId' in connectionInNotebookMetadata) {
                     const appInsightsId = connectionInNotebookMetadata.appInsightsId;
                     connection = getCachedConnections().find((item) => item.id === appInsightsId);
+                } else {
+                    connection = fromMetadata(connectionInNotebookMetadata);
                 }
                 updateMetadataWithConnectionInfo(metadata, connection);
             }

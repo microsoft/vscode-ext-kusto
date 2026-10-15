@@ -42,7 +42,12 @@ export function getConnectionFromNotebookMetadata(document: NotebookDocument) {
     const connection = metadata?.connection;
     if (connection) {
         if ('cluster' in connection) {
-            return AzureAuthenticatedConnection.connectionInfofrom(connection);
+            try {
+                return AzureAuthenticatedConnection.connectionInfofrom(connection);
+            } catch (ex) {
+                console.error('Rejected invalid Kusto notebook connection metadata', ex);
+                return;
+            }
         }
     }
 
