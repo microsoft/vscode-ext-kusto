@@ -15,7 +15,6 @@ suite('Kusto cluster URL validation', () => {
         'https://cluster.kusto.data.microsoft.com',
         'https://cluster.kusto.fabric.microsoft.com',
         'https://adx.monitor.azure.com',
-        'https://user:password@help.kusto.windows.net',
         'https://help.kusto.windows.net:8443'
     ];
 
@@ -24,6 +23,10 @@ suite('Kusto cluster URL validation', () => {
             assert.equal(isValidKustoClusterUrl(value), true);
         });
     }
+
+    const urlWithCredentials = new URL('https://help.kusto.windows.net');
+    urlWithCredentials.username = 'user';
+    urlWithCredentials.password = 'password';
 
     const invalidUrls = [
         'http://help.kusto.windows.net',
@@ -39,6 +42,7 @@ suite('Kusto cluster URL validation', () => {
         'https://help.kusto.windows.net/path',
         'https://help.kusto.windows.net?query=value',
         'https://help.kusto.windows.net#fragment',
+        urlWithCredentials.toString(),
         ' '
     ];
 
@@ -51,10 +55,6 @@ suite('Kusto cluster URL validation', () => {
 
     test('normalizes scheme, hostname, and trailing slash', () => {
         assert.equal(normalizeKustoClusterUrl('HTTPS://HELP.KUSTO.WINDOWS.NET/'), 'https://help.kusto.windows.net');
-        assert.equal(
-            normalizeKustoClusterUrl('https://user:password@help.kusto.windows.net'),
-            'https://help.kusto.windows.net'
-        );
         assert.equal(
             normalizeKustoClusterUrl('https://help.kusto.windows.net:8443'),
             'https://help.kusto.windows.net:8443'

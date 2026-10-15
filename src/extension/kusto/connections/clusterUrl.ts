@@ -13,6 +13,9 @@ export function normalizeKustoClusterUrl(value: string): string {
     if (url.protocol !== 'https:') {
         throw new Error('Kusto cluster URI must use HTTPS.');
     }
+    if (url.username || url.password) {
+        throw new Error('Kusto cluster URI cannot contain URL credentials.');
+    }
     if (url.pathname !== '/' || url.search || url.hash) {
         throw new Error('Kusto cluster URI cannot contain a path, query, or fragment.');
     }
