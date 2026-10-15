@@ -1,4 +1,4 @@
-import { ProgressLocation, window } from 'vscode';
+import { ProgressLocation, window, workspace } from 'vscode';
 import { getFromGlobalCache, updateGlobalCache } from '../../cache';
 import { GlobalMementoKeys } from '../../constants';
 import { KustoNotebookConnectionMetadata } from '../../content/provider';
@@ -59,6 +59,11 @@ export abstract class BaseConnection<T extends IConnectionInfo> implements IConn
         const cache = getFromGlobalCache<EngineSchema>(key);
         if (cache && !ignoreCache) {
             return JSON.parse(JSON.stringify(cache));
+        }
+
+        // Fetching a schema contacts the cluster with stored credentials; require Workspace Trust.
+        if (!workspace.isTrusted) {
+            throw new Error('Trust the workspace before fetching a Kusto cluster schema.');
         }
 
         if (options?.hideProgress) {

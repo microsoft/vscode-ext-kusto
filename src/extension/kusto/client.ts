@@ -21,10 +21,17 @@ export class Client implements IDisposable {
         this.addHandlers();
         this.connection = fromConnectionInfo(connectionInfo);
         this.kustoClient = this.connection.getKustoClient();
+        // A failed initialization (e.g. Restricted Mode) must not be reused once the cause is fixed.
+        this.kustoClient.catch(() => {
+            void Client.evict(this.document);
+        });
         addDocumentConnectionHandler((docOrTextDocument) => clientMap.delete(docOrTextDocument));
         registerDisposable(this);
     }
     public static async remove(document: NotebookDocument) {
+        clientMap.delete(document);
+    }
+    private static async evict(document: NotebookDocument | TextDocument) {
         clientMap.delete(document);
     }
     public static async create(
