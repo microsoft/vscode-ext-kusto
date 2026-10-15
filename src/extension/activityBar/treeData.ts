@@ -1,4 +1,12 @@
-import { Event, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import {
+    Event,
+    EventEmitter,
+    ThemeIcon,
+    TreeDataProvider,
+    TreeItem,
+    TreeItemCollapsibleState,
+    workspace
+} from 'vscode';
 import { fromConnectionInfo } from '../kusto/connections';
 import { getCachedConnections } from '../kusto/connections/storage';
 import { IConnectionInfo } from '../kusto/connections/types';
@@ -367,6 +375,10 @@ export class KustoClusterExplorer implements TreeDataProvider<ITreeData>, IDispo
         }
     }
     public async refresh() {
+        // Automatic schema loading can send stored credentials to the cluster; wait for Workspace Trust.
+        if (!workspace.isTrusted) {
+            return;
+        }
         const connections = getCachedConnections();
         if (!Array.isArray(connections)) {
             return;

@@ -37,6 +37,7 @@ export class ClusterTreeView {
                 ? clusterExplorer.addConnection(e.connection)
                 : clusterExplorer.removeCluster(e.connection)
         );
+        registerDisposable(workspace.onDidGrantWorkspaceTrust(() => clusterExplorer.refresh()));
         clusterExplorer.refresh();
     }
 
