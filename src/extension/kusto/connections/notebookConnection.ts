@@ -9,6 +9,7 @@ import {
 } from 'vscode';
 import { commands, NotebookDocument, Uri, workspace, WorkspaceEdit } from 'vscode';
 import { IConnectionInfo } from './types';
+import { isValidKustoClusterUrl } from './clusterUrl';
 import { isInteractiveWindow, isNotebookDocument, registerDisposable } from '../../utils';
 import { isJupyterNotebook, getJupyterNotebook, isKustoNotebook, getKustoNotebook } from '../../utils';
 import { isEqual } from 'lodash';
@@ -43,13 +44,21 @@ export async function ensureDocumentHasConnectionInfo(
 export function isConnectionValidForKustoQuery(connection: Partial<IConnectionInfo>): connection is IConnectionInfo {
     switch (connection.type) {
         case 'azAuth':
-            return connection.cluster && connection.database ? true : false;
+            return (
+                isValidKustoClusterUrl(connection.cluster) &&
+                typeof connection.database === 'string' &&
+                connection.database.trim().length > 0
+            );
         case 'appInsights':
-            return connection.id ? true : false;
+            return typeof connection.id === 'string' && connection.id.trim().length > 0;
         default:
-            return 'cluster' in connection && connection.cluster && 'database' in connection && connection.database
-                ? true
-                : false;
+            return (
+                'cluster' in connection &&
+                isValidKustoClusterUrl(connection.cluster) &&
+                'database' in connection &&
+                typeof connection.database === 'string' &&
+                connection.database.trim().length > 0
+            );
     }
 }
 export async function ensureNotebookHasConnectionInfoInternal(

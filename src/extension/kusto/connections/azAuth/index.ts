@@ -1,6 +1,6 @@
 import { KustoConnectionStringBuilder } from 'azure-kusto-data';
 import { AzureCliCredential } from '@azure/identity';
-import { authentication, env, Uri, window } from 'vscode';
+import { authentication, commands, env, Uri, window, workspace } from 'vscode';
 import { EngineSchema } from '../../schema';
 import { getClusterDisplayName } from '../../utils';
 import { BaseConnection } from '../baseConnection';
@@ -8,6 +8,7 @@ import { updateConnectionCache } from '../storage';
 import { AzureAuthenticatedConnectionInfo, IKustoClient, NewableKustoClient } from '../types';
 import { getClusterSchema } from './schema';
 import { LoggerFactory } from '../../../output/logger';
+import { normalizeKustoClusterUrl } from '../clusterUrl';
 
 export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthenticatedConnectionInfo> {
     private static KustoClientCtor: NewableKustoClient;
@@ -19,11 +20,12 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
         AzureAuthenticatedConnection.KustoClientCtor = ctor;
     }
     public static connectionInfofrom(info: { cluster: string; database?: string }): AzureAuthenticatedConnectionInfo {
+        const cluster = normalizeKustoClusterUrl(info.cluster);
         return {
-            cluster: info.cluster,
+            cluster,
             database: info.database,
-            displayName: getClusterDisplayName(info.cluster),
-            id: info.cluster,
+            displayName: getClusterDisplayName(cluster),
+            id: cluster,
             type: 'azAuth'
         };
     }
@@ -40,20 +42,30 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
         return getClusterSchema(this.info);
     }
     public async getKustoClient(): Promise<IKustoClient> {
+        if (!workspace.isTrusted) {
+            const manageWorkspaceTrust = 'Manage Workspace Trust';
+            const selection = await window.showWarningMessage(
+                'Running Kusto queries requires a trusted workspace because it uses Azure credentials and connects to the configured cluster.',
+                manageWorkspaceTrust
+            );
+            if (selection === manageWorkspaceTrust) {
+                await commands.executeCommand('workbench.trust.manage');
+            }
+            throw new Error('Trust the workspace before connecting to a Kusto cluster.');
+        }
         if (!this.info.cluster) {
             this.Logger.error('Cluster information is missing in connection info.');
             throw new Error('Cluster information is missing in connection info.');
         }
+        const cluster = normalizeKustoClusterUrl(this.info.cluster);
         // Create and show output channel
-        this.Logger.log(`Creating Kusto client for cluster: ${this.info.cluster}`);
+        this.Logger.log(`Creating Kusto client for cluster: ${cluster}`);
         const accessToken = await this.getAccessToken();
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.Logger.log(
-            `Using access token for cluster: ${this.info.cluster} with token: ${
-                accessToken ? 'provided' : 'not provided'
-            }`
+            `Using access token for cluster: ${cluster} with token: ${accessToken ? 'provided' : 'not provided'}`
         );
-        const connection = this.getConnectionBuilder(this.info.cluster, accessToken);
+        const connection = this.getConnectionBuilder(cluster, accessToken);
         return new AzureAuthenticatedConnection.KustoClientCtor(connection);
     }
     private getConnectionBuilder(cluster: string, accessToken?: string) {

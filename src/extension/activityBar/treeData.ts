@@ -1,4 +1,12 @@
-import { Event, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import {
+    Event,
+    EventEmitter,
+    ThemeIcon,
+    TreeDataProvider,
+    TreeItem,
+    TreeItemCollapsibleState,
+    workspace
+} from 'vscode';
 import { fromConnectionInfo } from '../kusto/connections';
 import { getCachedConnections } from '../kusto/connections/storage';
 import { IConnectionInfo } from '../kusto/connections/types';
@@ -367,27 +375,25 @@ export class KustoClusterExplorer implements TreeDataProvider<ITreeData>, IDispo
         }
     }
     public async refresh() {
+        // Automatic schema loading can send stored credentials to the cluster; wait for Workspace Trust.
+        if (!workspace.isTrusted) {
+            return;
+        }
         const connections = getCachedConnections();
         if (!Array.isArray(connections)) {
             return;
         }
-        if (this.connections.length === 0) {
-            await Promise.all(
-                connections.map((clusterUri) =>
-                    this.addConnection(clusterUri).catch((ex) =>
-                        console.error(`Failed to add cluster ${clusterUri}`, ex)
-                    )
-                )
-            );
-        } else {
-            await Promise.all(
-                connections.map((item) =>
-                    this.refreshConnection(item).catch((ex) =>
-                        console.error(`Failed to add cluster ${JSON.stringify(item)}`, ex)
-                    )
-                )
-            );
-        }
+        await Promise.all(
+            connections.map((connection) => {
+                const existingExplorerNode = this.connections.find((item) => item.info.id === connection.id);
+                const operation = existingExplorerNode
+                    ? this.refreshConnection(connection)
+                    : this.addConnection(connection);
+                return operation.catch((ex) =>
+                    console.error(`Failed to refresh cluster ${JSON.stringify(connection)}`, ex)
+                );
+            })
+        );
     }
 
     public async refreshConnection(connection: IConnectionInfo) {
