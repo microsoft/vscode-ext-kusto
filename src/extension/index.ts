@@ -26,6 +26,7 @@ import { regsisterQuickFixAction } from './content/quickFix';
 
 export { isValidKustoClusterUrl, normalizeKustoClusterUrl } from './kusto/connections/clusterUrl';
 export { getAppInsightsApplicationUrl, normalizeAppInsightsDataSource } from './kusto/connections/appInsights/url';
+export { evictCachedClientIfCurrent } from './kusto/client';
 
 export async function activate(context: ExtensionContext) {
     registerDisposableRegistry(context);

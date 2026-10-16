@@ -10,6 +10,21 @@ import { addDocumentConnectionHandler, ensureDocumentHasConnectionInfo } from '.
 
 const clientMap = new WeakMap<NotebookDocument | TextDocument, Promise<Client | undefined>>();
 
+export async function evictCachedClientIfCurrent<TKey extends object, TValue>(
+    cache: WeakMap<TKey, Promise<TValue | undefined>>,
+    key: TKey,
+    failedClient: TValue
+) {
+    const cachedPromise = cache.get(key);
+    if (!cachedPromise) {
+        return;
+    }
+    const cachedClient = await cachedPromise;
+    if (cache.get(key) === cachedPromise && cachedClient === failedClient) {
+        cache.delete(key);
+    }
+}
+
 export class Client implements IDisposable {
     private readonly disposables: IDisposable[] = [];
     private readonly kustoClient: Promise<IKustoClient>;
@@ -23,7 +38,7 @@ export class Client implements IDisposable {
         this.kustoClient = this.connection.getKustoClient();
         // A failed initialization (e.g. Restricted Mode) must not be reused once the cause is fixed.
         this.kustoClient.catch(() => {
-            void Client.evict(this.document);
+            void Client.evict(this.document, this);
         });
         addDocumentConnectionHandler((docOrTextDocument) => clientMap.delete(docOrTextDocument));
         registerDisposable(this);
@@ -31,8 +46,8 @@ export class Client implements IDisposable {
     public static async remove(document: NotebookDocument) {
         clientMap.delete(document);
     }
-    private static async evict(document: NotebookDocument | TextDocument) {
-        clientMap.delete(document);
+    private static async evict(document: NotebookDocument | TextDocument, failedClient: Client) {
+        await evictCachedClientIfCurrent(clientMap, document, failedClient);
     }
     public static async create(
         document: NotebookDocument | TextDocument,
