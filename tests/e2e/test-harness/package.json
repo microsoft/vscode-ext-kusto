@@ -1,0 +1,10 @@
+{
+    "name": "kusto-e2e-test-harness",
+    "displayName": "Kusto E2E Test Harness",
+    "version": "0.0.0",
+    "publisher": "microsoft",
+    "engines": {
+        "vscode": "^1.97.0"
+    },
+    "main": "./extension.js"
+}
