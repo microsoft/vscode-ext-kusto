@@ -67,6 +67,15 @@ function getControllerId(connection: IConnectionInfo, notebookType: string) {
     return `${notebookType}_${encodeConnectionInfo(connection)}`;
 }
 
+// Currently-selected controller per notebook. Set by the
+// onDidChangeSelectedNotebooks handler below; used by `getSelectedController`
+// so callers can route execution to the kernel the user actually picked.
+const selectedControllerByNotebook = new WeakMap<NotebookDocument, KernelPerConnection>();
+
+export function getSelectedController(notebook: NotebookDocument): KernelPerConnection | undefined {
+    return selectedControllerByNotebook.get(notebook);
+}
+
 export class KernelPerConnection extends Disposable {
     public readonly notebookController: NotebookController;
     private readonly disposables: Disposable[] = [];
@@ -86,6 +95,13 @@ export class KernelPerConnection extends Disposable {
         this.notebookController.description = displayInfo.description;
         this.disposables.push(
             this.notebookController.onDidChangeSelectedNotebooks(async ({ notebook, selected }) => {
+                if (selected) {
+                    selectedControllerByNotebook.set(notebook, this);
+                } else if (selectedControllerByNotebook.get(notebook) === this) {
+                    // Only clear if we still own the slot — handles A→B switches
+                    // where B's `select` may fire before A's `deselect`.
+                    selectedControllerByNotebook.delete(notebook);
+                }
                 if (!selected) {
                     return;
                 }
