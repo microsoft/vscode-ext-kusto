@@ -28,8 +28,8 @@ export async function activate(context: ExtensionContext) {
     registerDisposableRegistry(context);
     initializeGlobalCache(context.globalState, context.workspaceState);
     initializeConstants(false); // In browser context dont use proposed API, try to always use stable stuff...
+    await initializeConnectionStorage(context);
     initializeLanguageService(context);
-    initializeConnectionStorage(context);
     regsisterQuickFixAction();
     registerConnection('azAuth', AzureAuthenticatedConnection, (info) =>
         'cluster' in info ? AzureAuthenticatedConnection.connectionInfofrom(info) : undefined

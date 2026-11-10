@@ -48,7 +48,7 @@ public cloud. Unsupported connection metadata is ignored without removing the no
 Kusto connection before running queries.
 
 When migrating older saved connections, unsupported cluster URLs are skipped and logged without preventing supported
-connections from being migrated.
+connections from being migrated. Migration completes before the explorer loads saved connections.
 
 ## Getting Started
 

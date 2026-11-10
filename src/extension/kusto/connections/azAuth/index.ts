@@ -21,6 +21,9 @@ export class AzureAuthenticatedConnection extends BaseConnection<AzureAuthentica
     }
     public static connectionInfofrom(info: { cluster: string; database?: string }): AzureAuthenticatedConnectionInfo {
         const cluster = normalizeKustoClusterUrl(info.cluster);
+        if (info.database !== undefined && typeof info.database !== 'string') {
+            throw new Error('Kusto database must be a string.');
+        }
         return {
             cluster,
             database: info.database,

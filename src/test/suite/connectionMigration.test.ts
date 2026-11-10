@@ -2,7 +2,9 @@ import * as assert from 'assert';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { getSupportedLegacyConnections } = require('../../extension/index') as {
-    getSupportedLegacyConnections(clusters: string[]): { info: { cluster: string } }[];
+    getSupportedLegacyConnections(
+        clusters: string[]
+    ): { cluster: string; id: string; type: 'azAuth'; displayName: string }[];
 };
 
 suite('Legacy Kusto connection migration', () => {
@@ -17,7 +19,7 @@ suite('Legacy Kusto connection migration', () => {
         ]);
 
         assert.deepStrictEqual(
-            connections.map((connection) => connection.info.cluster),
+            connections.map((connection) => connection.cluster),
             supportedClusters
         );
     });
@@ -28,12 +30,24 @@ suite('Legacy Kusto connection migration', () => {
 
     test('preserves supported connections', () => {
         assert.deepStrictEqual(
-            getSupportedLegacyConnections(supportedClusters).map((connection) => connection.info.cluster),
+            getSupportedLegacyConnections(supportedClusters).map((connection) => connection.cluster),
             supportedClusters
         );
     });
 
     test('accepts an empty legacy connection list', () => {
         assert.deepStrictEqual(getSupportedLegacyConnections([]), []);
+    });
+
+    test('produces plain connection records that survive persistence', () => {
+        const connections = getSupportedLegacyConnections(['HTTPS://HELP.KUSTO.WINDOWS.NET/']);
+        assert.deepStrictEqual(JSON.parse(JSON.stringify(connections)), [
+            {
+                cluster: 'https://help.kusto.windows.net',
+                displayName: 'help',
+                id: 'https://help.kusto.windows.net',
+                type: 'azAuth'
+            }
+        ]);
     });
 });
