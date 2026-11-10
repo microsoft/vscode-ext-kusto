@@ -1,0 +1,144 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - .vscode/**
+      - '*.md'
+      - docs/**
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - .vscode/**
+      - '*.md'
+      - docs/**
+
+variables:
+  nodeVersion: 20.x
+  vscodeVersion: 1.97.0
+
+stages:
+  # Repository lifecycle and build scripts run without the Azure service connection or E2E variable group.
+  - stage: Build
+    displayName: Build E2E artifacts
+    jobs:
+      - job: Build
+        displayName: Build VSIX and E2E runner
+        timeoutInMinutes: 20
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+            clean: true
+            persistCredentials: false
+
+          - task: NodeTool@0
+            displayName: Use Node.js $(nodeVersion)
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          - script: npm run compile
+            displayName: Compile TypeScript
+
+          - script: npm run compile:webpack
+            displayName: Compile webpack bundles
+
+          - script: npm run compile:e2e
+            displayName: Compile E2E tests
+
+          - script: npm run package
+            displayName: Package VSIX
+
+          - task: CopyFiles@2
+            displayName: Stage E2E build
+            inputs:
+              SourceFolder: $(Build.SourcesDirectory)
+              Contents: |
+                kusto-notebooks.vsix
+                out/**
+                package.json
+                package-lock.json
+                tests/e2e/test-harness/**
+              TargetFolder: $(Build.ArtifactStagingDirectory)/e2e-build
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish E2E build
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/e2e-build
+              artifact: e2e-build
+              publishLocation: pipeline
+
+  - stage: E2E
+    displayName: Run authenticated E2E tests
+    dependsOn: Build
+    condition: and(succeeded(), or(ne(variables['Build.Reason'], 'PullRequest'), ne(variables['System.PullRequest.IsFork'], 'True')))
+    variables:
+      - group: vscode-ext-kusto-e2e
+    jobs:
+      - job: E2E
+        displayName: E2E $(imageName)
+        timeoutInMinutes: 30
+        strategy:
+          matrix:
+            Linux:
+              imageName: ubuntu-latest
+              testCommand: xvfb-run -a node ./out/tests/e2e/runVSIXTests.js
+            macOS:
+              imageName: macOS-latest
+              testCommand: node ./out/tests/e2e/runVSIXTests.js
+        pool:
+          vmImage: $(imageName)
+        steps:
+          - checkout: none
+
+          - download: current
+            artifact: e2e-build
+            displayName: Download E2E build
+
+          - task: NodeTool@0
+            displayName: Use Node.js $(nodeVersion)
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: npm ci --ignore-scripts
+            displayName: Install dependencies without lifecycle scripts
+            workingDirectory: $(Pipeline.Workspace)/e2e-build
+
+          - script: node ./out/tests/e2e/prepareVSCode.js
+            displayName: Prepare pinned VS Code
+            workingDirectory: $(Pipeline.Workspace)/e2e-build
+            env:
+              VSCODE_VERSION: $(vscodeVersion)
+
+          - task: AzureCLI@2
+            displayName: Run authenticated E2E tests
+            inputs:
+              azureSubscription: kusto-connectors-arm-sc
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: $(Pipeline.Workspace)/e2e-build
+              inlineScript: $(testCommand)
+              visibleAzLogin: false
+            env:
+              E2E_TEST_LEVEL: all
+              VSIX_PATH: $(Pipeline.Workspace)/e2e-build/kusto-notebooks.vsix
+              VSCODE_EXECUTABLE_PATH: $(VSCODE_EXECUTABLE_PATH)
+              AZURE_TENANT_ID: $(TENANT_ID)
+              KUSTO_TEST_CLUSTER: $(CLUSTER)
+              KUSTO_TEST_DATABASE: $(DATABASE)
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish test results
+            condition: always()
+            inputs:
+              targetPath: $(Pipeline.Workspace)/e2e-build/out/tests
+              artifact: test-results-$(imageName)
+              publishLocation: pipeline

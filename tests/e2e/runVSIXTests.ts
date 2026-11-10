@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath, runTests } from '@vscode/test-electron';
+import { runTests, downloadAndUnzipVSCode, resolveCliArgsFromVSCodeExecutablePath } from '@vscode/test-electron';
 
 /**
  * Enhanced E2E Test Runner with VSIX Support
@@ -183,9 +183,9 @@ class VSIXTestRunner {
                     testWorkspace,
                     `--extensions-dir=${extensionsPath}`,
                     `--user-data-dir=${userDataPath}`,
-                    '--disable-workspace-trust',
-                    '--skip-welcome',
-                    '--disable-telemetry'
+                    '--disable-workspace-trust', // Skip trust dialog
+                    '--skip-welcome', // Skip welcome screen
+                    '--disable-telemetry' // Disable telemetry
                 ],
                 extensionTestsEnv: {
                     ...process.env,
