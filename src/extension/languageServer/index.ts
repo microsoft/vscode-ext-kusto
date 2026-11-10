@@ -85,6 +85,12 @@ export async function initialize(context: ExtensionContext) {
     registerDisposable(workspace.onDidOpenNotebookDocument(sendSchemaForDocument));
     addDocumentConnectionHandler(sendSchemaForDocument);
     registerDisposable(workspace.onDidOpenTextDocument(sendSchemaForDocument));
+    registerDisposable(
+        workspace.onDidGrantWorkspaceTrust(() => {
+            workspace.notebookDocuments.forEach(sendSchemaForDocument);
+            workspace.textDocuments.forEach(sendSchemaForDocument);
+        })
+    );
     // Send schemas for currently opened documents as well.
     workspace.notebookDocuments.forEach(sendSchemaForDocument);
     workspace.textDocuments.forEach(sendSchemaForDocument);
@@ -140,6 +146,9 @@ function startLanguageServer(context: ExtensionContext) {
 const lastSentConnectionForDocument = new WeakMap<NotebookDocument | TextDocument, Partial<IConnectionInfo>>();
 const pendingSchemas = new Map<NotebookDocument | TextDocument, EngineSchema>();
 async function sendSchemaForDocument(document: NotebookDocument | TextDocument) {
+    if (!workspace.isTrusted) {
+        return;
+    }
     const notebook = getNotebookDocument(document);
     if (notebook && !isKustoNotebook(notebook) && !isJupyterNotebook(notebook) && !isInteractiveWindow(notebook)) {
         return;

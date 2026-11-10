@@ -3,6 +3,7 @@ import { EngineSchema } from '../../schema';
 import { fromConnectionInfo } from '..';
 import * as axios from 'axios';
 import { v4 } from 'uuid';
+import { getAppInsightsApplicationUrl } from './url';
 
 export async function getClusterSchema(
     connection: AppInsightsConnectionInfo,
@@ -23,7 +24,7 @@ async function getSchema(client: IKustoClient, secrets: AppInsightsConnectionSec
     headers['Content-Type'] = 'application/json; charset=utf-8';
     headers['x-ms-client-request-id'] = `KNC.execute;${v4()}`;
 
-    const uri = `https://api.applicationinsights.io/v1/apps/${secrets.appId}/metadata`;
+    const uri = `${getAppInsightsApplicationUrl(secrets.appId)}/metadata`;
     const axiosConfig = {
         headers,
         gzip: true,

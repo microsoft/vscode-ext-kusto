@@ -24,12 +24,17 @@ import { regsiterSchemaTool } from './llm/schemaTool';
 import { registerKqlNotebookConnectionHandler } from './content/kqlConnection';
 import { regsisterQuickFixAction } from './content/quickFix';
 
+export { isValidKustoClusterUrl, normalizeKustoClusterUrl } from './kusto/connections/clusterUrl';
+export { getAppInsightsApplicationUrl, normalizeAppInsightsDataSource } from './kusto/connections/appInsights/url';
+export { evictCachedClientIfCurrent } from './kusto/client';
+export { getSupportedLegacyConnections } from './kusto/connections/storage';
+
 export async function activate(context: ExtensionContext) {
     registerDisposableRegistry(context);
     initializeGlobalCache(context.globalState, context.workspaceState);
     initializeConstants(context.extension.packageJSON.enableProposedApi); // In browser context dont use proposed API, try to always use stable stuff...
+    await initializeConnectionStorage(context);
     initializeLanguageService(context);
-    initializeConnectionStorage(context);
     regsisterQuickFixAction();
     registerConnection('azAuth', AzureAuthenticatedConnection, (info) =>
         'cluster' in info ? AzureAuthenticatedConnection.connectionInfofrom(info) : undefined
