@@ -47,6 +47,9 @@ Notebook cluster metadata is accepted only for HTTPS endpoints trusted by the in
 public cloud. Unsupported connection metadata is ignored without removing the notebook's cells; select a trusted
 Kusto connection before running queries.
 
+When migrating older saved connections, unsupported cluster URLs are skipped and logged without preventing supported
+connections from being migrated.
+
 ## Getting Started
 
 - Open a `*.kql|*.csl` file and start typing to get code completion

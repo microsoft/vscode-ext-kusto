@@ -11,6 +11,18 @@ const cachedKustoConnectionsKey = 'CACHED_KUSTO-CONNECTIONS.1';
 
 const onDidChangeConnection = new EventEmitter<{ connection: IConnectionInfo; change: 'added' | 'removed' }>();
 
+export function getSupportedLegacyConnections(clusters: string[]): AzureAuthenticatedConnection[] {
+    const connections: AzureAuthenticatedConnection[] = [];
+    for (const cluster of clusters) {
+        try {
+            connections.push(AzureAuthenticatedConnection.from({ cluster }));
+        } catch (ex) {
+            console.error('Skipped unsupported legacy Kusto connection during migration', cluster, ex);
+        }
+    }
+    return connections;
+}
+
 async function migrateCachedConnections() {
     const clusters: string[] = getFromGlobalCache<string[]>(GlobalMementoKeys.clusterUris) || [];
     const cachedConnections = getCachedConnections();
@@ -19,7 +31,7 @@ async function migrateCachedConnections() {
         return;
     }
     if (cachedConnections.length === 0 && clusters.length) {
-        const connectionsToCache = clusters.map((cluster) => AzureAuthenticatedConnection.from({ cluster }));
+        const connectionsToCache = getSupportedLegacyConnections(clusters);
         await memento.update(cachedKustoConnectionsKey, connectionsToCache);
         await updateGlobalCache(GlobalMementoKeys.clusterUris, undefined);
         return;
