@@ -28,6 +28,17 @@ suite('Legacy Kusto connection migration', () => {
         assert.deepStrictEqual(getSupportedLegacyConnections(unsupportedClusters), []);
     });
 
+    test('skips credential-bearing URLs without blocking supported connections', () => {
+        const url = new URL(supportedClusters[0]);
+        url.username = 'migration-log-test-user';
+        url.password = 'migration-log-test-password';
+        const connections = getSupportedLegacyConnections([supportedClusters[0], url.toString(), supportedClusters[1]]);
+        assert.deepStrictEqual(
+            connections.map((connection) => connection.cluster),
+            supportedClusters
+        );
+    });
+
     test('preserves supported connections', () => {
         assert.deepStrictEqual(
             getSupportedLegacyConnections(supportedClusters).map((connection) => connection.cluster),

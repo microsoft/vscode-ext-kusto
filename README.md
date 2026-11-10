@@ -47,8 +47,9 @@ Notebook cluster metadata is accepted only for HTTPS endpoints trusted by the in
 public cloud. Unsupported connection metadata is ignored without removing the notebook's cells; select a trusted
 Kusto connection before running queries.
 
-When migrating older saved connections, unsupported cluster URLs are skipped and logged without preventing supported
-connections from being migrated. Migration completes before the explorer loads saved connections.
+When migrating older saved connections, unsupported cluster URLs are skipped without preventing supported connections
+from being migrated. Validation errors are logged without including the raw URLs. Migration completes before the
+explorer loads saved connections.
 
 ## Getting Started
 

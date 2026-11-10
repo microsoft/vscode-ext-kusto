@@ -17,7 +17,7 @@ export function getSupportedLegacyConnections(clusters: string[]): AzureAuthenti
         try {
             connections.push(AzureAuthenticatedConnection.connectionInfofrom({ cluster }));
         } catch (ex) {
-            console.error('Skipped unsupported legacy Kusto connection during migration', cluster, ex);
+            console.error('Skipped unsupported legacy Kusto connection during migration', ex);
         }
     }
     return connections;
